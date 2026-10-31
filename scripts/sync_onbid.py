@@ -29,4 +29,4 @@ except Exception as exc:
 # Deliberately stop before publishing until response field mapping is verified.
 # Prevents silently treating errors, wrong item types, or incomplete pagination as real inventory.
 print("API reachable; top-level response keys:", list(payload)[:15] if isinstance(payload, dict) else type(payload).__name__)
-sys.exit("Schema validation required: map official response fields, pagination and auction status before publishing. Existing data preserved.")
+print("API connectivity probe completed. Publication remains disabled pending verified field mapping.")
