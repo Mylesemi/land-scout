@@ -6,9 +6,9 @@ from pathlib import Path
 
 DEST = Path("data/auctions.json")
 key = os.getenv("DATA_GO_KR_API_KEY", "").strip()
-endpoint = os.getenv("ONBID_LIST_ENDPOINT", "").strip()
+endpoint = os.getenv("ONBID_LIST_ENDPOINT", "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2").strip()
 if not key or not endpoint:
-    sys.exit("Configuration missing: DATA_GO_KR_API_KEY secret or ONBID_LIST_ENDPOINT variable")
+    sys.exit("Configuration missing: DATA_GO_KR_API_KEY secret")
 if not endpoint.startswith("https://"):
     sys.exit("Endpoint must use HTTPS")
 if not ("onbid" in urllib.parse.urlparse(endpoint).hostname.lower() or "data.go.kr" in urllib.parse.urlparse(endpoint).hostname.lower()):
