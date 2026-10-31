@@ -1,6 +1,10 @@
 name: Sync Onbid auctions
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/sync_onbid.py'
+      - '.github/workflows/sync-onbid.yml'
   schedule:
     - cron: '20 0 * * *'
 permissions:
