@@ -1,5 +1,5 @@
 """Onbid real-estate list collector. Conservative, no fabricated data."""
-import json, os, re, sys, urllib.parse, urllib.request, urllib.error
+import json, os, re, sys, time, urllib.parse, urllib.request, urllib.error
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,6 +53,8 @@ def request(prpt, pvct, page):
         with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json, application/xml"}), timeout=30) as resp:
             raw = resp.read(3_000_000)
     except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise RuntimeError("HTTP 429 rate limit") from None
         raise RuntimeError(f"HTTP {exc.code}") from None
     except Exception as exc:
         raise RuntimeError(f"Network error {type(exc).__name__}") from None
@@ -105,7 +107,9 @@ def normalize(row):
 # Codes are not assumed to have a particular meaning; query a small range and
 # use the provider's returned descriptive fields for selection.
 codes = [x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0001,0002,0003,0004,0005,0006,0007").split(",") if re.fullmatch(r"\d{4}", x.strip())]
-max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "100")), 1), 500)
+max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "3")), 1), 20)
+request_budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "18")), 1), 100)
+requests_used = 0
 records = {}
 had_items = False
 successful = 0
@@ -115,7 +119,19 @@ rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":
 for code in codes:
     for pvct in ("N", "Y"):
         for page in range(1, max_pages + 1):
-            result, message, payload, fmt = request(code, pvct, page)
+            if requests_used >= request_budget:
+                incomplete = True
+                break
+            try:
+                result, message, payload, fmt = request(code, pvct, page)
+            except RuntimeError as exc:
+                if "HTTP 429" in str(exc):
+                    print("Provider rate limit reached; publishing verified matches from completed pages only.")
+                    incomplete = True
+                    break
+                raise
+            requests_used += 1
+            time.sleep(0.25)
             print(f"property_code={code} private_contract={pvct} page={page} api_code={result} message={message}")
             if result == "03":
                 break
@@ -139,16 +155,20 @@ for code in codes:
                 break
             if page == max_pages:
                 incomplete = True
+        if incomplete:
+            break
+    if incomplete:
+        break
 
 print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=False))
 if incomplete:
-    sys.exit("Pagination limit reached; refusing to publish partial results.")
+    print("Collection is partial due to pagination/request budget or provider throttling; only confirmed matching items will be published.")
 if not had_items:
     sys.exit("No recognizable API items; existing snapshot preserved. Verify operation and query codes.")
 if not records:
-    sys.exit("API returned items, but no eligible rows were mapped. Check field names and filter rejection counts; existing snapshot preserved.")
+    sys.exit("No eligible rows in the queried pages; existing snapshot preserved. Check rejection counts and expand targeted queries.")
 DEST.parent.mkdir(parents=True, exist_ok=True)
-snapshot = {"updated": datetime.now(timezone.utc).isoformat(), "status": "verified_filtered",
+snapshot = {"updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
             "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
 DEST.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print(f"Published {len(records)} conservatively filtered records; {successful} successful pages")
+print(f"Published {len(records)} conservatively filtered records; {successful} successful pages; partial={incomplete}")
