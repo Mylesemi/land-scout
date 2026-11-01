@@ -48,7 +48,9 @@ try:
         if isinstance(header, dict):
             print("API resultCode:", str(header.get("resultCode", "unknown"))[:50])
             print("API resultMsg:", str(header.get("resultMsg", "unknown"))[:150])
-            if str(header.get("resultCode", "")) not in ("", "00", "0"):
+            if str(header.get("resultCode", "")) == "03":
+                print("NODATA: current query returned no records. No publication or overwrite.")
+            elif str(header.get("resultCode", "")) not in ("", "00", "0"):
                 sys.exit("API reported an error; publication blocked")
 except (ValueError, UnicodeDecodeError):
     try:
@@ -60,6 +62,8 @@ except (ValueError, UnicodeDecodeError):
     message = root.findtext(".//resultMsg") or root.findtext(".//returnAuthMsg")
     print("API resultCode:", str(code)[:50])
     print("API resultMsg:", str(message)[:150])
-    if code and code not in ("00", "0"):
+    if code == "03":
+        print("NODATA: current query returned no records. No publication or overwrite.")
+    elif code and code not in ("00", "0"):
         sys.exit("API reported an error; publication blocked")
 print("Connectivity response parsed. Auction publication is disabled until official item schema and required filters are validated.")
