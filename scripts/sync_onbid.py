@@ -16,7 +16,15 @@ if parsed.scheme != "https" or parsed.hostname != "apis.data.go.kr":
     sys.exit("Only https://apis.data.go.kr endpoints are allowed")
 
 # Do not print request URL or exception text containing serviceKey.
-params = {"serviceKey": key, "pageNo": "1", "numOfRows": "10"}
+# Required by the real-estate list API metadata: prptDivCd and pvctTrgtYn.
+# Default code values are provisional and must be validated with the provider's code table.
+params = {
+    "serviceKey": key,
+    "pageNo": "1",
+    "numOfRows": "10",
+    "prptDivCd": os.getenv("ONBID_PRPT_DIV_CD", "0001"),
+    "pvctTrgtYn": os.getenv("ONBID_PVCT_TRGT_YN", "N"),
+}
 url = endpoint + ("&" if "?" in endpoint else "?") + urllib.parse.urlencode(params)
 req = urllib.request.Request(url, headers={"Accept": "application/json, application/xml", "User-Agent": "LAND-SCOUT/1"})
 try:
