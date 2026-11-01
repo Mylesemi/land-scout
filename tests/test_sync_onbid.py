@@ -25,6 +25,13 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(code, "00")
         self.assertEqual(namespace["extract"](payload, fmt)[0]["cltrMngNo"], "A")
 
+    def test_top_level_api_envelope(self):
+        obj = {"header": {"resultCode": "00", "resultMsg": "NORMAL_CODE"},
+               "body": {"items": {"item": [{"cltrMngNo": "A"}]}}}
+        code, msg, payload, fmt = namespace["parse_response"](json.dumps(obj).encode())
+        self.assertEqual(code, "00")
+        self.assertEqual(namespace["extract"](payload, fmt)[0]["cltrMngNo"], "A")
+
     def test_verified_land(self):
         row = {"cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
                "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
