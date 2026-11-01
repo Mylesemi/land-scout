@@ -8,6 +8,9 @@ on:
       - '.github/workflows/sync-onbid.yml'
   schedule:
     - cron: '20 0 * * *'
+concurrency:
+  group: onbid-sync
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
