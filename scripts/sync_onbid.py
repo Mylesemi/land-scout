@@ -57,6 +57,8 @@ def request(prpt, pvct, page):
                 break
             except urllib.error.HTTPError as exc:
                 if exc.code != 429 or attempt == 2:
+                    if exc.code == 429:
+                        print("HTTP 429 response headers: retry-after=" + str(exc.headers.get("Retry-After", "absent")) + ", rate-limit-remaining=" + str(exc.headers.get("X-RateLimit-Remaining", "absent")), flush=True)
                     raise
                 delay = (20, 60)[attempt]
                 print(f"Onbid rate limited (HTTP 429); retrying after {delay}s", flush=True)
@@ -173,7 +175,8 @@ print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=Fals
 if incomplete:
     print("Collection is partial due to pagination/request budget or provider throttling; only confirmed matching items will be published.")
 if not had_items:
-    sys.exit("No recognizable API items; existing snapshot preserved. Verify operation and query codes.")
+    print("No recognizable API items; existing snapshot preserved. Verify API quota and key status.", file=sys.stderr)
+    sys.exit(2)
 if not records:
     sys.exit("No eligible rows in the queried pages; existing snapshot preserved. Check rejection counts and expand targeted queries.")
 DEST.parent.mkdir(parents=True, exist_ok=True)
