@@ -80,7 +80,7 @@ def normalize(row):
         return None
     # Exclude non-land properties, ambiguous prices and locations outside Gyeonggi.
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
-    if "토지" not in category and "토지" not in name:
+    if ("토지" not in category) if category.strip() else ("토지" not in name):
         rejection_counts["not_land"] += 1
         return None
     region = str(row.get("lctnSdnm") or "")
