@@ -143,11 +143,9 @@ print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=Fals
 if incomplete:
     sys.exit("Pagination limit reached; refusing to publish partial results.")
 if not had_items:
-    print("No recognized inventory; existing published data preserved.")
-    sys.exit(0)
+    sys.exit("No recognizable API items; existing snapshot preserved. Verify operation and query codes.")
 if not records:
-    print("Inventory received but no verifiable matching Gyeonggi land under 100m; existing snapshot preserved.")
-    sys.exit(0)
+    sys.exit("API returned items, but no eligible rows were mapped. Check field names and filter rejection counts; existing snapshot preserved.")
 DEST.parent.mkdir(parents=True, exist_ok=True)
 snapshot = {"updated": datetime.now(timezone.utc).isoformat(), "status": "verified_filtered",
             "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
