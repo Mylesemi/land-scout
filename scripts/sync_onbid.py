@@ -20,12 +20,12 @@ def parse_response(raw):
         if not isinstance(root, dict):
             raise ValueError("JSON root is not an object")
         header = root.get("response", {}).get("header", {}) if isinstance(root.get("response"), dict) else {}
-        code = str(header.get("resultCode", "00"))
+        code = str(header.get("resultCode", ""))
         message = str(header.get("resultMsg", ""))[:120]
         return code, message, root, "json"
     except (ValueError, UnicodeDecodeError):
         root = ET.fromstring(raw)
-        code = root.findtext(".//resultCode") or root.findtext(".//returnReasonCode") or "00"
+        code = root.findtext(".//resultCode") or root.findtext(".//returnReasonCode") or ""
         message = root.findtext(".//resultMsg") or root.findtext(".//returnAuthMsg") or ""
         return code, message[:120], root, "xml"
 
@@ -121,9 +121,7 @@ for code in codes:
             successful += 1
             items = extract(payload, fmt)
             if not items:
-                # A successful envelope without recognizable items may mean a different schema.
-                print("No recognized items in response; schema needs inspection")
-                break
+                raise RuntimeError("API success envelope contained no recognized items; refusing silent schema mismatch")
             had_items = True
             if isinstance(items[0], dict):
                 fields = tuple(sorted(items[0].keys()))
