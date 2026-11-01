@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'scripts/sync_onbid.py'
+      - 'tests/test_sync_onbid.py'
       - '.github/workflows/sync-onbid.yml'
   schedule:
     - cron: '20 0 * * *'
@@ -17,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Offline regression tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Fetch official API
         env:
           DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}
