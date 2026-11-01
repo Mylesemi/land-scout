@@ -95,7 +95,7 @@ def normalize(row):
 # Codes are not assumed to have a particular meaning; query a small range and
 # use the provider's returned descriptive fields for selection.
 codes = [x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0001,0002,0003,0004,0005,0006,0007").split(",") if re.fullmatch(r"\d{4}", x.strip())]
-max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "3")), 1), 10)
+max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "100")), 1), 500)
 records = {}
 had_items = False
 successful = 0
