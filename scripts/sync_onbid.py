@@ -99,6 +99,7 @@ max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "3")), 1), 10)
 records = {}
 had_items = False
 successful = 0
+incomplete = False
 for code in codes:
     for pvct in ("N", "Y"):
         for page in range(1, max_pages + 1):
@@ -121,7 +122,11 @@ for code in codes:
                     records[row["lot_id"]] = row
             if len(items) < 100:
                 break
+            if page == max_pages:
+                incomplete = True
 
+if incomplete:
+    sys.exit("Pagination limit reached; refusing to publish partial results.")
 if not had_items:
     print("No recognized inventory; existing published data preserved.")
     sys.exit(0)
