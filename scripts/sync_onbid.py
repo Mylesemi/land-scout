@@ -50,8 +50,17 @@ def request(prpt, pvct, page):
               "prptDivCd": prpt, "pvctTrgtYn": pvct}
     url = endpoint + ("&" if "?" in endpoint else "?") + urllib.parse.urlencode(params)
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json, application/xml"}), timeout=30) as resp:
-            raw = resp.read(3_000_000)
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json, application/xml"}), timeout=30) as resp:
+                    raw = resp.read(3_000_000)
+                break
+            except urllib.error.HTTPError as exc:
+                if exc.code != 429 or attempt == 2:
+                    raise
+                delay = (20, 60)[attempt]
+                print(f"Onbid rate limited (HTTP 429); retrying after {delay}s", flush=True)
+                time.sleep(delay)
     except urllib.error.HTTPError as exc:
         if exc.code == 429:
             raise RuntimeError("HTTP 429 rate limit") from None
@@ -108,7 +117,7 @@ def normalize(row):
 # use the provider's returned descriptive fields for selection.
 codes = [x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0001,0002,0003,0004,0005,0006,0007").split(",") if re.fullmatch(r"\d{4}", x.strip())]
 max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "3")), 1), 20)
-request_budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "18")), 1), 100)
+request_budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "8")), 1), 100)
 requests_used = 0
 records = {}
 had_items = False
