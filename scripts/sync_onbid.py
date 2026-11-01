@@ -19,7 +19,8 @@ def parse_response(raw):
         root = json.loads(raw)
         if not isinstance(root, dict):
             raise ValueError("JSON root is not an object")
-        header = root.get("response", {}).get("header", {}) if isinstance(root.get("response"), dict) else {}
+        envelope = root.get("response", root)
+        header = envelope.get("header", {}) if isinstance(envelope, dict) else {}
         code = str(header.get("resultCode", ""))
         message = str(header.get("resultMsg", ""))[:120]
         return code, message, root, "json"
@@ -33,11 +34,11 @@ def extract(payload, fmt):
     if fmt == "xml":
         # Only accept objects with the documented stable item identifier.
         return [{node.tag.rsplit("}", 1)[-1]: (node.text or "").strip() for node in item}
-                for item in payload.iter() if item.tag.rsplit("}", 1)[-1] == "item"]
-    body = payload.get("response", {}).get("body", {})
+                for item in payload.iter() if item.tag.rsplit("}", 1)[-1] in ("item", "row", "cltr")]
+    body = payload.get("response", payload).get("body", {})
     if not isinstance(body, dict):
         return []
-    items = body.get("items", [])
+    items = body.get("items", body.get("item", body.get("row", [])))
     if isinstance(items, dict):
         items = items.get("item", [])
     if isinstance(items, dict):
@@ -69,7 +70,7 @@ def normalize(row):
         return None
     ident = str(row.get("cltrMngNo") or "").strip()
     name = str(row.get("onbidCltrNm") or "").strip()
-    area = price_number(row.get("landSqms"))
+    area = price_number(row.get("landSqms") or row.get("sqmsCont"))
     price = price_number(row.get("lowstBidPrcIndctCont"))
     if not ident:
         rejection_counts["missing_identifier"] += 1
@@ -79,17 +80,19 @@ def normalize(row):
         return None
     # Exclude non-land properties, ambiguous prices and locations outside Gyeonggi.
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
-    if "토지" not in category:
+    if "토지" not in category and "토지" not in name:
         rejection_counts["not_land"] += 1
         return None
     region = str(row.get("lctnSdnm") or "")
+    if not region:
+        region = str(row.get("zadrNm") or row.get("cltrRadr") or "").split(" ")[0]
     if region not in ("경기도", "경기"):
         rejection_counts["not_gyeonggi"] += 1
         return None
     if price > 100_000_000:
         rejection_counts["over_budget"] += 1
         return None
-    address = " ".join(str(row.get(k) or "").strip() for k in ("lctnSdnm", "lctnSggnm", "lctnEmdNm")).strip()
+    address = str(row.get("zadrNm") or "").strip() or " ".join(str(row.get(k) or "").strip() for k in ("lctnSdnm", "lctnSggnm", "lctnEmdNm")).strip()
     if not address:
         return None
     return {"source": "온비드", "lot_id": ident, "address": address, "min_price": price,
@@ -97,7 +100,7 @@ def normalize(row):
             "bid_start": row.get("cltrBidBgngDt"), "bid_end": row.get("cltrBidEndDt"),
             "status": row.get("pbctStatNm"), "drive_min": None, "lat": None, "lng": None,
             "road": None, "water": None, "sewer": None, "grid": None,
-            "sunlight": None, "legal": None, "url": None}
+            "sunlight": None, "legal": None, "url": (row.get("urlAdr") if str(row.get("urlAdr") or "").startswith("https://") else None)}
 
 # Codes are not assumed to have a particular meaning; query a small range and
 # use the provider's returned descriptive fields for selection.
