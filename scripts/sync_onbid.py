@@ -71,16 +71,23 @@ def normalize(row):
     name = str(row.get("onbidCltrNm") or "").strip()
     area = price_number(row.get("landSqms"))
     price = price_number(row.get("lowstBidPrcIndctCont"))
-    if not ident or not price or not area:
+    if not ident:
+        rejection_counts["missing_identifier"] += 1
+        return None
+    if not price or not area:
+        rejection_counts["missing_price_or_area"] += 1
         return None
     # Exclude non-land properties, ambiguous prices and locations outside Gyeonggi.
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
     if "토지" not in category:
+        rejection_counts["not_land"] += 1
         return None
     region = str(row.get("lctnSdnm") or "")
     if region not in ("경기도", "경기"):
+        rejection_counts["not_gyeonggi"] += 1
         return None
     if price > 100_000_000:
+        rejection_counts["over_budget"] += 1
         return None
     address = " ".join(str(row.get(k) or "").strip() for k in ("lctnSdnm", "lctnSggnm", "lctnEmdNm")).strip()
     if not address:
@@ -100,6 +107,8 @@ records = {}
 had_items = False
 successful = 0
 incomplete = False
+seen_field_sets = set()
+rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":0,"not_gyeonggi":0,"over_budget":0}
 for code in codes:
     for pvct in ("N", "Y"):
         for page in range(1, max_pages + 1):
@@ -116,6 +125,11 @@ for code in codes:
                 print("No recognized items in response; schema needs inspection")
                 break
             had_items = True
+            if isinstance(items[0], dict):
+                fields = tuple(sorted(items[0].keys()))
+                if fields not in seen_field_sets:
+                    seen_field_sets.add(fields)
+                    print("Response item field names (no values):", ",".join(fields)[:1800])
             for item in items:
                 row = normalize(item)
                 if row:
@@ -125,6 +139,7 @@ for code in codes:
             if page == max_pages:
                 incomplete = True
 
+print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=False))
 if incomplete:
     sys.exit("Pagination limit reached; refusing to publish partial results.")
 if not had_items:
