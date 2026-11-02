@@ -186,14 +186,15 @@ for code in codes:
                     records[row["lot_id"]] = row
             if len(items) < 100:
                 break
-            if page == max_pages:
+            if page == max_pages and len(items) == 100:
                 incomplete = True
-        if incomplete:
+        if requests_used >= request_budget or (incomplete and not had_items):
             break
-    if incomplete:
+    if requests_used >= request_budget or (incomplete and not had_items):
         break
 
 print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=False))
+print("Matched property types:", json.dumps({"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, ensure_ascii=False))
 if incomplete:
     print("Collection is partial due to pagination/request budget or provider throttling; only confirmed matching items will be published.")
 if not had_items:
