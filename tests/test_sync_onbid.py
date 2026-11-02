@@ -44,6 +44,13 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(out["area"], 32.75)
         self.assertEqual(out["min_price"], 45000000)
 
+    def test_housing_with_building_area(self):
+        row = {"cltrMngNo":"H1","onbidCltrNm":"경기도 용인시 아파트","bldSqms":"84.92","frstBidPrc":"85000000","cltrUsgLclsCtgrNm":"부동산","cltrUsgMclsCtgrNm":"주택","lctnSdnm":"경기도","lctnSggnm":"용인시"}
+        out = namespace["normalize"](row)
+        self.assertIsNotNone(out)
+        self.assertEqual(out["property_type"], "주택")
+        self.assertEqual(out["area"], 84.92)
+
     def test_verified_land(self):
         row = {"cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
                "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
