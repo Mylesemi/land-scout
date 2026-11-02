@@ -131,7 +131,7 @@ def normalize(row):
     if not address:
         return None
     return {"source": "온비드", "lot_id": ident, "address": address, "min_price": price,
-            "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type, "category": category.strip(), "name": name,
+            "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type, "pnu": (str(row.get("ltnoPnu") or "").strip() if re.fullmatch(r"\\d{19}", str(row.get("ltnoPnu") or "").strip()) else None), "category": category.strip(), "name": name,
             "bid_start": row.get("cltrBidBgngDt"), "bid_end": row.get("cltrBidEndDt"),
             "status": row.get("pbctStatNm"), "drive_min": None, "lat": None, "lng": None,
             "road": None, "water": None, "sewer": None, "grid": None,
