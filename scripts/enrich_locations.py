@@ -33,10 +33,13 @@ def route(origin, destination):
     return round(duration / 60, 1) if isinstance(duration, (int, float)) and duration >= 0 else None
 
 def main():
-    if not DATA.exists() or not GEO_KEY:
-        print("Enrichment skipped: missing snapshot or KAKAO_REST_API_KEY")
+    if not DATA.exists():
+        print("Enrichment skipped: snapshot missing")
         return
     data = json.loads(DATA.read_text(encoding="utf-8"))
+    if not GEO_KEY:
+        print("Enrichment skipped: KAKAO_REST_API_KEY not configured")
+        return
     origin = None
     if ROUTE_KEY and re.fullmatch(r"\d+(?:\.\d+)?,\d+(?:\.\d+)?", ORIGIN):
         lon, lat = map(float, ORIGIN.split(","))
@@ -44,6 +47,11 @@ def main():
             origin = lon, lat
     stats = {"geocoded": 0, "routed": 0, "unmatched": 0}
     for item in data.get("items", []):
+        item["lat"] = None
+        item["lng"] = None
+        item["drive_min"] = None
+        item.pop("geocode_source", None)
+        item.pop("drive_source", None)
         address = lot_address(item.get("name", ""))
         if not address:
             stats["unmatched"] += 1
@@ -64,7 +72,7 @@ def main():
                     stats["routed"] += 1
         except Exception as exc:
             print("Enrichment unavailable for", item.get("lot_id"), type(exc).__name__)
-    data["enrichment"] = stats
+    data["enrichment"] = {**stats, "route_configured": bool(origin), "geocode_configured": True}
     DATA.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Enrichment stats:", stats)
 
