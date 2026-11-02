@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'scripts/sync_onbid.py'
+      - 'scripts/enrich_locations.py'
       - 'tests/test_sync_onbid.py'
       - '.github/workflows/sync-onbid.yml'
   schedule:
@@ -29,6 +30,12 @@ jobs:
           ONBID_LIST_ENDPOINT: ${{ vars.ONBID_LIST_ENDPOINT }}
           ONBID_DETAIL_ENDPOINT: ${{ vars.ONBID_DETAIL_ENDPOINT }}
         run: python scripts/sync_onbid.py
+      - name: Enrich verified property locations and routes (optional)
+        env:
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          KAKAO_MOBILITY_API_KEY: ${{ secrets.KAKAO_MOBILITY_API_KEY }}
+          LAND_SCOUT_ORIGIN_COORDS: ${{ vars.LAND_SCOUT_ORIGIN_COORDS }}
+        run: python scripts/enrich_locations.py
       - name: Commit validated data
         run: |
           if git diff --quiet -- data/auctions.json; then exit 0; fi
