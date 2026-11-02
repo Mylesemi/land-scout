@@ -91,20 +91,32 @@ def normalize(row):
         return None
     ident = str(row.get("cltrMngNo") or "").strip()
     name = str(row.get("onbidCltrNm") or "").strip()
-    area = area_number(row.get("landSqms") or row.get("sqmsCont"))
+    land_area = area_number(row.get("landSqms") or row.get("sqmsCont"))
+    building_area = area_number(row.get("bldSqms"))
     price = price_number(row.get("frstBidPrc")) or price_number(row.get("frstCtrsLowstBidPrc"))
     if price is None:
         price = price_number(row.get("lowstBidPrcIndctCont"))
     if not ident:
         rejection_counts["missing_identifier"] += 1
         return None
-    if not price or not area:
+    if not price or not (land_area or building_area):
         rejection_counts["missing_price_or_area"] += 1
         return None
-    # Exclude non-land properties, ambiguous prices and locations outside Gyeonggi.
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
-    if ("토지" not in category and "대지" not in category) if category.strip() else not any(w in name for w in ("토지", "대지", "임야", "전답")):
+    # Prefer the provider's hierarchical classification; reject ambiguous mixed lots.
+    land_terms = ("토지", "대지", "임야", "전답", "전", "답")
+    housing_terms = ("주택", "아파트", "빌라", "연립", "다세대", "다가구", "단독", "오피스텔")
+    label = category.strip() or name
+    if any(t in label for t in housing_terms):
+        property_type = "주택"
+    elif any(t in label for t in land_terms):
+        property_type = "토지"
+    else:
         rejection_counts["not_land"] += 1
+        return None
+    area = building_area if property_type == "주택" else land_area
+    if not area:
+        rejection_counts["missing_price_or_area"] += 1
         return None
     region = str(row.get("lctnSdnm") or "")
     if not region:
@@ -119,7 +131,7 @@ def normalize(row):
     if not address:
         return None
     return {"source": "온비드", "lot_id": ident, "address": address, "min_price": price,
-            "area": area, "category": category.strip(), "name": name,
+            "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type, "category": category.strip(), "name": name,
             "bid_start": row.get("cltrBidBgngDt"), "bid_end": row.get("cltrBidEndDt"),
             "status": row.get("pbctStatNm"), "drive_min": None, "lat": None, "lng": None,
             "road": None, "water": None, "sewer": None, "grid": None,
