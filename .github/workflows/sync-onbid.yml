@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/sync_onbid.py'
       - 'scripts/enrich_locations.py'
+      - 'scripts/sync_parcels.py'
       - 'data/geocode_cache.json'
       - 'tests/test_sync_onbid.py'
       - '.github/workflows/sync-onbid.yml'
@@ -33,12 +34,17 @@ jobs:
         run: python scripts/sync_onbid.py
       - name: Verify property coordinates using OpenStreetMap (no API key)
         run: python scripts/enrich_locations.py
+      - name: Collect verified cadastral boundaries (optional)
+        env:
+          VWORLD_API_KEY: ${{ secrets.VWORLD_API_KEY }}
+          VWORLD_API_DOMAIN: ${{ vars.VWORLD_API_DOMAIN }}
+        run: python scripts/sync_parcels.py
       - name: Commit validated data
         run: |
-          if git diff --quiet -- data/auctions.json data/geocode_cache.json; then exit 0; fi
+          if git diff --quiet -- data/auctions.json data/geocode_cache.json data/parcels.geojson; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/auctions.json data/geocode_cache.json
+          git add data/auctions.json data/geocode_cache.json data/parcels.geojson
           git commit -m "Update verified Onbid auctions"
           for attempt in 1 2 3; do
             if git push; then exit 0; fi
