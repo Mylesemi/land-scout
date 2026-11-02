@@ -46,14 +46,37 @@ def geocode(address):
             return [lat, lon]
     return None
 
+def area_geocode(address):
+    parts = address.split()
+    if len(parts) < 3:
+        return None
+    # Search only the locality, and explicitly label this as an approximate area.
+    area = " ".join(parts[:-1])
+    params = urllib.parse.urlencode({"q": area, "format": "jsonv2", "limit": 5, "addressdetails": 1})
+    req = urllib.request.Request("https://nominatim.openstreetmap.org/search?" + params,
+                                 headers={"User-Agent": AGENT, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        results = json.load(resp)
+    locality = parts[-2]
+    for result in results:
+        display = normalize(result.get("display_name", ""))
+        if normalize(locality) not in display:
+            continue
+        lat, lon = float(result["lat"]), float(result["lon"])
+        if 36.0 <= lat <= 39.0 and 126.0 <= lon <= 128.8:
+            return [lat, lon]
+    return None
+
 def main():
     if not DATA.exists():
         return
     data = json.loads(DATA.read_text(encoding="utf-8"))
     cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
     stats = {"geocoded": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "OpenStreetMap Nominatim"}
+    area_cache = {}
     for item in data.get("items", []):
         item["lat"] = item["lng"] = item["drive_min"] = None
+        item.pop("location_precision", None)
         item.pop("geocode_source", None)
         item.pop("drive_source", None)
         address = lot_address(item.get("name", ""))
@@ -75,9 +98,26 @@ def main():
             stats["requests"] += 1
         coords = cache[address]
         if coords is None:
-            stats["unmatched"] += 1
+            area = " ".join(address.split()[:-1])
+            if area not in area_cache and stats["requests"] < LIMIT:
+                time.sleep(1.2)
+                try:
+                    area_cache[area] = area_geocode(address)
+                except Exception as exc:
+                    print("Area lookup failed:", type(exc).__name__)
+                    area_cache[area] = None
+                stats["requests"] += 1
+            coords = area_cache.get(area)
+            if coords is None:
+                stats["unmatched"] += 1
+                continue
+            item["location_precision"] = "area"
+            item["lat"], item["lng"] = coords
+            item["geocode_source"] = "OSM approximate locality (not property location)"
+            stats["geocoded"] += 1
             continue
         item["lat"], item["lng"] = coords
+        item["location_precision"] = "exact"
         item["geocode_source"] = "OpenStreetMap Nominatim exact lot match"
         stats["geocoded"] += 1
     data["enrichment"] = {**stats, "geocode_configured": True, "route_configured": False}
