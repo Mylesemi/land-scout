@@ -1,80 +1,90 @@
-"""Optional exact-address geocoding and routing. No estimated coordinates."""
-import json, os, re, urllib.parse, urllib.request
-from pathlib import Path
-DATA = Path("data/auctions.json")
-GEO_KEY = os.getenv("KAKAO_REST_API_KEY", "").strip()
-ROUTE_KEY = os.getenv("KAKAO_MOBILITY_API_KEY", "").strip()
-ORIGIN = os.getenv("LAND_SCOUT_ORIGIN_COORDS", "").strip()
+"""Conservative keyless geocoding for Onbid properties using public OSM Nominatim.
 
-def fetch(url, key):
-    request = urllib.request.Request(url, headers={"Authorization": "KakaoAK " + key})
-    with urllib.request.urlopen(request, timeout=15) as response:
-        return json.load(response)
+Public Nominatim policy: maximum 1 request/second, identifying User-Agent,
+small batch, caching, no bulk address harvesting. No guessed map pins.
+"""
+import json, os, re, time, urllib.parse, urllib.request
+from pathlib import Path
+
+DATA = Path("data/auctions.json")
+CACHE = Path("data/geocode_cache.json")
+AGENT = "LandScout/1.0 (public GitHub project: https://github.com/Mylesemi/land-scout)"
+LIMIT = 15
 
 def lot_address(name):
-    match = re.search(r"((?:경기도|경기)\s+.+?\s+(?:산\s*)?\d+(?:-\d+)?)\s", name + " ")
+    # Require a complete Korean cadastral lot number, not a district centroid.
+    match = re.search(r"((?:경기도|경기)\s+.+?\s+(?:산\s*)?\d+(?:-\d+)?)(?=\s|$)", name)
     return match.group(1) if match else None
 
-def geocode(address):
-    url = "https://dapi.kakao.com/v2/local/search/address.json?" + urllib.parse.urlencode({"query": address})
-    for doc in fetch(url, GEO_KEY).get("documents", []):
-        detail = doc.get("address") or {}
-        if detail.get("address_name", "").replace(" ", "") == address.replace(" ", ""):
-            return float(doc["y"]), float(doc["x"])
-    return None
+def normalize(value):
+    return re.sub(r"\s+", "", str(value or "")).replace("경기도", "경기", 1)
 
-def route(origin, destination):
-    params = {"origin": f"{origin[0]},{origin[1]}", "destination": f"{destination[1]},{destination[0]}", "priority": "RECOMMEND"}
-    url = "https://apis-navi.kakaomobility.com/v1/directions?" + urllib.parse.urlencode(params)
-    routes = fetch(url, ROUTE_KEY).get("routes", [])
-    if not routes or routes[0].get("result_code") != 0:
+def geocode(address):
+    params = urllib.parse.urlencode({"q": address, "format": "jsonv2", "limit": 5, "addressdetails": 1})
+    req = urllib.request.Request("https://nominatim.openstreetmap.org/search?" + params,
+                                 headers={"User-Agent": AGENT, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        results = json.load(resp)
+    # Nominatim may return a road/neighborhood centroid for an unrecognized lot.
+    # Accept only results whose full display address explicitly contains the lot
+    # number and relevant locality; reject all ambiguous matches.
+    parts = address.split()
+    lot = re.search(r"(?:산\s*)?\d+(?:-\d+)?$", address)
+    if not lot or len(parts) < 4:
         return None
-    duration = routes[0].get("summary", {}).get("duration")
-    return round(duration / 60, 1) if isinstance(duration, (int, float)) and duration >= 0 else None
+    locality = parts[-2]
+    for result in results:
+        display = str(result.get("display_name", ""))
+        details = result.get("address") or {}
+        house = str(details.get("house_number") or "")
+        if normalize(locality) not in normalize(display):
+            continue
+        if normalize(house) != normalize(lot.group(0)):
+            continue
+        lat, lon = float(result["lat"]), float(result["lon"])
+        if 36.0 <= lat <= 39.0 and 126.0 <= lon <= 128.8:
+            return [lat, lon]
+    return None
 
 def main():
     if not DATA.exists():
-        print("Enrichment skipped: snapshot missing")
         return
     data = json.loads(DATA.read_text(encoding="utf-8"))
-    if not GEO_KEY:
-        print("Enrichment skipped: KAKAO_REST_API_KEY not configured")
-        return
-    origin = None
-    if ROUTE_KEY and re.fullmatch(r"\d+(?:\.\d+)?,\d+(?:\.\d+)?", ORIGIN):
-        lon, lat = map(float, ORIGIN.split(","))
-        if 124 <= lon <= 132 and 33 <= lat <= 39:
-            origin = lon, lat
-    stats = {"geocoded": 0, "routed": 0, "unmatched": 0}
+    cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
+    stats = {"geocoded": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "OpenStreetMap Nominatim"}
     for item in data.get("items", []):
-        item["lat"] = None
-        item["lng"] = None
-        item["drive_min"] = None
+        item["lat"] = item["lng"] = item["drive_min"] = None
         item.pop("geocode_source", None)
         item.pop("drive_source", None)
         address = lot_address(item.get("name", ""))
         if not address:
             stats["unmatched"] += 1
             continue
-        try:
-            coords = geocode(address)
-            if coords is None:
+        if address not in cache:
+            if stats["requests"] >= LIMIT:
                 stats["unmatched"] += 1
                 continue
-            item["lat"], item["lng"] = coords
-            item["geocode_source"] = "Kakao Local exact address match"
-            stats["geocoded"] += 1
-            if origin:
-                minutes = route(origin, coords)
-                if minutes is not None:
-                    item["drive_min"] = minutes
-                    item["drive_source"] = "Kakao Mobility recommended route"
-                    stats["routed"] += 1
-        except Exception as exc:
-            print("Enrichment unavailable for", item.get("lot_id"), type(exc).__name__)
-    data["enrichment"] = {**stats, "route_configured": bool(origin), "geocode_configured": True}
+            if stats["requests"]:
+                time.sleep(1.2)
+            try:
+                cache[address] = geocode(address)
+            except Exception as exc:
+                print("Geocoding failed:", type(exc).__name__)
+                stats["unmatched"] += 1
+                continue
+            stats["requests"] += 1
+        coords = cache[address]
+        if coords is None:
+            stats["unmatched"] += 1
+            continue
+        item["lat"], item["lng"] = coords
+        item["geocode_source"] = "OpenStreetMap Nominatim exact lot match"
+        stats["geocoded"] += 1
+    data["enrichment"] = {**stats, "geocode_configured": True, "route_configured": False}
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     DATA.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print("Enrichment stats:", stats)
+    print("Geocoding:", stats)
 
 if __name__ == "__main__":
     main()
