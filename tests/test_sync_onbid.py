@@ -51,6 +51,10 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(out["property_type"], "주택")
         self.assertEqual(out["area"], 84.92)
 
+    def test_no_false_land_match_from_common_korean_syllable(self):
+        row = {"cltrMngNo":"X1","onbidCltrNm":"경기도 용인시 상가 전용시설","landSqms":"40","frstBidPrc":"30000000","cltrUsgLclsCtgrNm":"상가","lctnSdnm":"경기도","lctnSggnm":"용인시"}
+        self.assertIsNone(namespace["normalize"](row))
+
     def test_verified_land(self):
         row = {"cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
                "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
