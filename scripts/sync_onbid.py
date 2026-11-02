@@ -20,7 +20,7 @@ def parse_response(raw):
         if not isinstance(root, dict):
             raise ValueError("JSON root is not an object")
         envelope = root.get("response", root)
-        header = envelope.get("header", {}) if isinstance(envelope, dict) else {}
+        header = envelope.get("header", envelope.get("result", {})) if isinstance(envelope, dict) else {}
         code = str(header.get("resultCode", ""))
         message = str(header.get("resultMsg", ""))[:120]
         return code, message, root, "json"
@@ -35,7 +35,8 @@ def extract(payload, fmt):
         # Only accept objects with the documented stable item identifier.
         return [{node.tag.rsplit("}", 1)[-1]: (node.text or "").strip() for node in item}
                 for item in payload.iter() if item.tag.rsplit("}", 1)[-1] in ("item", "row", "cltr")]
-    body = payload.get("response", payload).get("body", {})
+    envelope = payload.get("response", payload)
+    body = envelope.get("body", envelope.get("result", {}))
     if not isinstance(body, dict):
         return []
     items = body.get("items", body.get("item", body.get("row", [])))
@@ -71,6 +72,13 @@ def request(prpt, pvct, page):
         raise RuntimeError(f"Network error {type(exc).__name__}") from None
     return parse_response(raw)
 
+def area_number(value):
+    s = str(value or "").replace(",", "").strip()
+    if not re.fullmatch(r"\d+(?:\.\d+)?", s):
+        return None
+    n = float(s)
+    return n if n > 0 else None
+
 def price_number(value):
     s = str(value or "").replace(",", "").replace("원", "").strip()
     if not re.fullmatch(r"\d+(?:\.0+)?", s):
@@ -83,8 +91,10 @@ def normalize(row):
         return None
     ident = str(row.get("cltrMngNo") or "").strip()
     name = str(row.get("onbidCltrNm") or "").strip()
-    area = price_number(row.get("landSqms") or row.get("sqmsCont"))
-    price = price_number(row.get("lowstBidPrcIndctCont"))
+    area = area_number(row.get("landSqms") or row.get("sqmsCont"))
+    price = price_number(row.get("frstBidPrc")) or price_number(row.get("frstCtrsLowstBidPrc"))
+    if price is None:
+        price = price_number(row.get("lowstBidPrcIndctCont"))
     if not ident:
         rejection_counts["missing_identifier"] += 1
         return None
@@ -93,13 +103,13 @@ def normalize(row):
         return None
     # Exclude non-land properties, ambiguous prices and locations outside Gyeonggi.
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
-    if ("토지" not in category) if category.strip() else ("토지" not in name):
+    if ("토지" not in category and "대지" not in category) if category.strip() else not any(w in name for w in ("토지", "대지", "임야", "전답")):
         rejection_counts["not_land"] += 1
         return None
     region = str(row.get("lctnSdnm") or "")
     if not region:
         region = str(row.get("zadrNm") or row.get("cltrRadr") or "").split(" ")[0]
-    if region not in ("경기도", "경기"):
+    if region.strip() not in ("경기도", "경기"):
         rejection_counts["not_gyeonggi"] += 1
         return None
     if price > 100_000_000:
@@ -178,7 +188,8 @@ if not had_items:
     print("No recognizable API items; existing snapshot preserved. Verify API quota and key status.", file=sys.stderr)
     sys.exit(2)
 if not records:
-    sys.exit("No eligible rows in the queried pages; existing snapshot preserved. Check rejection counts and expand targeted queries.")
+    print("API returned items, but no eligible Gyeonggi land rows. Existing snapshot preserved; this is not an API failure.")
+    sys.exit(0)
 DEST.parent.mkdir(parents=True, exist_ok=True)
 snapshot = {"updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
             "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
