@@ -7,7 +7,7 @@ from pathlib import Path
 
 source = Path("scripts/sync_onbid.py").read_text(encoding="utf-8")
 tree = ast.parse(source)
-functions = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("parse_response", "extract", "normalize", "price_number")]
+functions = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("parse_response", "extract", "normalize", "price_number", "area_number")]
 namespace = {"json": json, "ET": ET, "re": __import__("re"), "rejection_counts": {"missing_identifier": 0, "missing_price_or_area": 0, "not_land": 0, "not_gyeonggi": 0, "over_budget": 0}}
 exec(compile(ast.Module(body=functions, type_ignores=[]), "<collector-functions>", "exec"), namespace)
 
@@ -31,6 +31,18 @@ class CollectorTests(unittest.TestCase):
         code, msg, payload, fmt = namespace["parse_response"](json.dumps(obj).encode())
         self.assertEqual(code, "00")
         self.assertEqual(namespace["extract"](payload, fmt)[0]["cltrMngNo"], "A")
+
+    def test_result_envelope_no_data(self):
+        raw = b'{"result":{"resultCode":"03","resultMsg":"NODATA_ERROR"}}'
+        code, msg, payload, fmt = namespace["parse_response"](raw)
+        self.assertEqual((code, msg, fmt), ("03", "NODATA_ERROR", "json"))
+
+    def test_decimal_area_and_first_bid(self):
+        row = {"cltrMngNo": "123", "onbidCltrNm": "대지", "landSqms": "32.75", "frstBidPrc": "45000000", "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
+        out = namespace["normalize"](row)
+        self.assertIsNotNone(out)
+        self.assertEqual(out["area"], 32.75)
+        self.assertEqual(out["min_price"], 45000000)
 
     def test_verified_land(self):
         row = {"cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
