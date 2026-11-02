@@ -15,7 +15,7 @@
       "over_budget": 9
     }
   },
-  "updated": "2026-11-02T07:41:41.838533+00:00",
+  "updated": "2026-11-02T07:52:26.366896+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -59,15 +59,17 @@
       "bid_end": "202611161600",
       "status": "입찰진행중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.9051316,
+      "lng": 127.0609492,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -109,15 +111,17 @@
       "bid_end": "202611161600",
       "status": "입찰진행중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.9073575,
+      "lng": 127.0323924,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -134,15 +138,17 @@
       "bid_end": "202610301700",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 36.9861984,
+      "lng": 126.8612618,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -159,15 +165,17 @@
       "bid_end": "202610301700",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 36.9861984,
+      "lng": 126.8612618,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -184,15 +192,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4264102,
+      "lng": 127.2575353,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -209,15 +219,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2380787,
+      "lng": 127.4588829,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -234,15 +246,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.3405695,
+      "lng": 127.4687384,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -284,15 +298,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -309,15 +325,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -359,22 +377,24 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     }
   ],
   "enrichment": {
-    "geocoded": 0,
+    "geocoded": 10,
     "routed": 0,
-    "unmatched": 14,
-    "requests": 14,
+    "unmatched": 4,
+    "requests": 13,
     "provider": "OpenStreetMap Nominatim",
     "geocode_configured": true,
     "route_configured": false
