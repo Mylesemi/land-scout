@@ -104,12 +104,12 @@ def normalize(row):
         return None
     category = " ".join(str(row.get(k) or "") for k in ("cltrUsgLclsCtgrNm", "cltrUsgMclsCtgrNm", "cltrUsgSclsCtgrNm"))
     # Prefer the provider's hierarchical classification; reject ambiguous mixed lots.
-    land_terms = ("토지", "대지", "임야", "전답", "전", "답")
+    land_terms = ("토지", "대지", "임야", "전답", "농지", "잡종지")
     housing_terms = ("주택", "아파트", "빌라", "연립", "다세대", "다가구", "단독", "오피스텔")
     label = category.strip() or name
     if any(t in label for t in housing_terms):
         property_type = "주택"
-    elif any(t in label for t in land_terms):
+    elif any(t in label for t in land_terms) or re.search(r"(?:^|\\s)(?:전|답)(?:$|\\s)", label):
         property_type = "토지"
     else:
         rejection_counts["not_land"] += 1
@@ -147,6 +147,7 @@ records = {}
 had_items = False
 successful = 0
 incomplete = False
+throttle_hit = False
 seen_field_sets = set()
 rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":0,"not_gyeonggi":0,"over_budget":0}
 for code in codes:
@@ -161,6 +162,7 @@ for code in codes:
                 if "HTTP 429" in str(exc):
                     print("Provider rate limit reached; publishing verified matches from completed pages only.")
                     incomplete = True
+                    throttle_hit = True
                     break
                 raise
             requests_used += 1
@@ -188,9 +190,9 @@ for code in codes:
                 break
             if page == max_pages and len(items) == 100:
                 incomplete = True
-        if requests_used >= request_budget or (incomplete and not had_items):
+        if requests_used >= request_budget or incomplete and throttle_hit:
             break
-    if requests_used >= request_budget or (incomplete and not had_items):
+    if requests_used >= request_budget or incomplete and throttle_hit:
         break
 
 print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=False))
@@ -204,7 +206,7 @@ if not records:
     print("API returned items, but no eligible Gyeonggi land rows. Existing snapshot preserved; this is not an API failure.")
     sys.exit(0)
 DEST.parent.mkdir(parents=True, exist_ok=True)
-snapshot = {"updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
+snapshot = {"collection": {"requests": requests_used, "successful_pages": successful, "partial": incomplete, "matched_by_type": {"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, "rejected": rejection_counts}, "updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
             "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
 DEST.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(f"Published {len(records)} conservatively filtered records; {successful} successful pages; partial={incomplete}")
