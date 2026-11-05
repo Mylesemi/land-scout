@@ -5,17 +5,17 @@
     "partial": true,
     "matched_by_type": {
       "토지": 5,
-      "주택": 4
+      "주택": 5
     },
     "rejected": {
       "missing_identifier": 0,
       "missing_price_or_area": 16,
-      "not_land": 232,
-      "not_gyeonggi": 245,
-      "over_budget": 7
+      "not_land": 241,
+      "not_gyeonggi": 244,
+      "over_budget": 8
     }
   },
-  "updated": "2026-11-04T06:40:30.953757+00:00",
+  "updated": "2026-11-05T06:59:17.774796+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -44,6 +44,34 @@
       "sunlight": null,
       "legal": null,
       "url": null
+    },
+    {
+      "source": "온비드",
+      "lot_id": "2022-1100-055386",
+      "address": "경기도 용인시 기흥구 동백동",
+      "min_price": 98100000,
+      "area": 40.53,
+      "land_area": 71.5,
+      "building_area": 40.53,
+      "property_type": "주택",
+      "pnu": null,
+      "category": "부동산 주거용건물 도시형생활주택",
+      "name": "경기도 용인시 기흥구 동백동 154-1 301호 도시형생활주택",
+      "bid_start": "202611021000",
+      "bid_end": "202611021700",
+      "status": "수의계약가능",
+      "drive_min": null,
+      "lat": 37.2857563,
+      "lng": 127.1594247,
+      "road": null,
+      "water": null,
+      "sewer": null,
+      "grid": null,
+      "sunlight": null,
+      "legal": null,
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -267,10 +295,10 @@
     }
   ],
   "enrichment": {
-    "geocoded": 6,
+    "geocoded": 7,
     "routed": 0,
     "unmatched": 3,
-    "requests": 9,
+    "requests": 11,
     "provider": "OpenStreetMap Nominatim",
     "geocode_configured": true,
     "route_configured": false
