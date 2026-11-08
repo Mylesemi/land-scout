@@ -10,12 +10,12 @@
     "rejected": {
       "missing_identifier": 0,
       "missing_price_or_area": 17,
-      "not_land": 222,
-      "not_gyeonggi": 255,
+      "not_land": 220,
+      "not_gyeonggi": 257,
       "over_budget": 11
     }
   },
-  "updated": "2026-11-06T06:58:34.081000+00:00",
+  "updated": "2026-11-08T06:17:13.282199+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -339,15 +339,17 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -391,22 +393,24 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     }
   ],
   "enrichment": {
-    "geocoded": 9,
+    "geocoded": 11,
     "routed": 0,
-    "unmatched": 5,
-    "requests": 15,
+    "unmatched": 3,
+    "requests": 13,
     "provider": "OpenStreetMap Nominatim",
     "geocode_configured": true,
     "route_configured": false
