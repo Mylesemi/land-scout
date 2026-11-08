@@ -12,7 +12,7 @@ BASE = "https://api.vworld.kr/req/data"
 
 def fetch_parcel(pnu):
     params = {"service": "data", "request": "GetFeature", "data": "LP_PA_CBND_BUBUN",
-              "key": KEY, "domain": os.getenv("VWORLD_API_DOMAIN", "localhost"),
+              "key": KEY, "domain": (os.getenv("VWORLD_API_DOMAIN") or "localhost"),
               "format": "json", "size": 1, "attrFilter": "pnu:equal:" + pnu,
               "geometry": "true", "crs": "EPSG:4326"}
     url = BASE + "?" + urllib.parse.urlencode(params)
@@ -26,7 +26,7 @@ def fetch_parcel(pnu):
     for feature in features:
         props = feature.get("properties") or {}
         geom = feature.get("geometry") or {}
-        if str(props.get("pnu") or "") == pnu and geom.get("type") in ("Polygon", "MultiPolygon"):
+        if str(props.get("pnu") or props.get("PNU") or "") == pnu and geom.get("type") in ("Polygon", "MultiPolygon"):
             return {"type": "Feature", "properties": {"pnu": pnu, "source": "VWorld cadastral parcel"},
                     "geometry": geom}
     return None
@@ -51,7 +51,7 @@ def main():
             except Exception as exc:
                 print("Parcel request failed for", pnu, type(exc).__name__)
     else:
-        print("VWORLD_API_KEY absent: publishing no unverified boundaries")
+        print("VWORLD_API_KEY absent: no new cadastral boundaries; existing verified boundaries retained")
     output = {"type": "FeatureCollection", "features": list(existing.values())}
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
