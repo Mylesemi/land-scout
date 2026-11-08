@@ -15,7 +15,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??'미확인').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number(n).toLocaleString('ko-KR')+'원';
 const fmtDate=v=>{const s=String(v||'');return /^\d{12}$/.test(s)?s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8)+' '+s.slice(8,10)+':'+s.slice(10):esc(v)};
-let lots=[],status='loading',map,layer;
+let lots=[],status='loading',map,layer,parcelShapes=new Map();
 if(window.L){map=L.map('map').setView([37.237,127.072],10);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);layer=L.layerGroup().addTo(map);L.circleMarker([37.237,127.072],{radius:7,color:'#ffcd68'}).addTo(map).bindPopup('서천동 근사 기준점')}
 function render(){const price=Number($('price').value),mode=$('drive').value,kind=$('kind').value;
 const rows=lots.filter(x=>Number(x.min_price)<=price&&(kind==='all'||kind===(x.property_type||'토지'))&&(mode==='all'||mode==='near'&&x.drive_min!=null&&Number(x.drive_min)<=30||mode==='unknown'&&x.drive_min==null));
