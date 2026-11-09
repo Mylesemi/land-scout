@@ -10,12 +10,12 @@
     "rejected": {
       "missing_identifier": 0,
       "missing_price_or_area": 17,
-      "not_land": 220,
-      "not_gyeonggi": 257,
-      "over_budget": 11
+      "not_land": 206,
+      "not_gyeonggi": 270,
+      "over_budget": 12
     }
   },
-  "updated": "2026-11-08T12:03:09.244752+00:00",
+  "updated": "2026-11-09T06:50:04.966209+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
