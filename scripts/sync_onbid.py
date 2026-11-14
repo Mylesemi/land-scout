@@ -56,6 +56,12 @@ def request(prpt, pvct, page):
                 with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json, application/xml"}), timeout=30) as resp:
                     raw = resp.read(3_000_000)
                 break
+            except (urllib.error.URLError, TimeoutError) as exc:
+                if attempt == 2:
+                    raise
+                delay = (2, 5)[attempt]
+                print(f"Onbid transient network error {type(exc).__name__}; retrying after {delay}s", flush=True)
+                time.sleep(delay)
             except urllib.error.HTTPError as exc:
                 if exc.code != 429 or attempt == 2:
                     if exc.code == 429:
@@ -159,8 +165,10 @@ for code in codes:
             try:
                 result, message, payload, fmt = request(code, pvct, page)
             except RuntimeError as exc:
-                if "HTTP 429" in str(exc):
-                    print("Provider rate limit reached; publishing verified matches from completed pages only.")
+                if "HTTP 429" in str(exc) or "Network error" in str(exc):
+                    if not had_items:
+                        raise
+                    print("Provider temporarily unavailable; publishing verified matches from completed pages only. Cause:", str(exc), flush=True)
                     incomplete = True
                     throttle_hit = True
                     break
