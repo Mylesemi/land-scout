@@ -21,6 +21,8 @@ def fetch_parcel(pnu):
         data = json.load(response)
     response = data.get("response") or {}
     if response.get("status") != "OK":
+        err = response.get("error") or {}
+        print("VWorld lookup unavailable:", str(err.get("code") or response.get("status")), str(err.get("text") or "")[:160])
         return None
     features = ((response.get("result") or {}).get("featureCollection") or {}).get("features") or []
     for feature in features:
@@ -55,6 +57,7 @@ def main():
     output = {"type": "FeatureCollection", "features": list(existing.values())}
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("VWorld key configured:", bool(KEY))
     print("Cadastral boundaries:", len(existing), "of", len(pnus), "PNU identifiers")
 
 if __name__ == "__main__":
