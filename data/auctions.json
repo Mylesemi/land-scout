@@ -5,17 +5,17 @@
     "partial": true,
     "matched_by_type": {
       "토지": 11,
-      "주택": 3
+      "주택": 2
     },
     "rejected": {
       "missing_identifier": 0,
-      "missing_price_or_area": 33,
-      "not_land": 212,
-      "not_gyeonggi": 254,
-      "over_budget": 5
+      "missing_price_or_area": 34,
+      "not_land": 163,
+      "not_gyeonggi": 218,
+      "over_budget": 79
     }
   },
-  "updated": "2026-11-12T07:23:57.675206+00:00",
+  "updated": "2026-11-14T06:41:44.784491+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -187,34 +187,6 @@
     },
     {
       "source": "온비드",
-      "lot_id": "2026-1000-057985",
-      "address": "경기도 광주시 초월읍",
-      "min_price": 90250000,
-      "area": 49.701,
-      "land_area": 59.39,
-      "building_area": 49.701,
-      "property_type": "주택",
-      "pnu": "4161025321003010097",
-      "category": "부동산 주거용건물 다세대주택",
-      "name": "경기도 광주시 초월읍 대쌍령리 301-97 제비동 201호 다세대주택",
-      "bid_start": "202611111000",
-      "bid_end": "202611111700",
-      "status": "수의계약가능",
-      "drive_min": null,
-      "lat": 37.3855645,
-      "lng": 127.2847701,
-      "road": null,
-      "water": null,
-      "sewer": null,
-      "grid": null,
-      "sunlight": null,
-      "legal": null,
-      "url": null,
-      "location_precision": "area",
-      "geocode_source": "OSM approximate locality (not property location)"
-    },
-    {
-      "source": "온비드",
       "lot_id": "2025-07274-001",
       "address": "경기도 군포시 당동",
       "min_price": 28800000,
@@ -313,8 +285,8 @@
       "bid_end": "202704141700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": 37.71535,
-      "lng": 126.5542666,
+      "lat": 37.715547,
+      "lng": 126.5536065,
       "road": null,
       "water": null,
       "sewer": null,
@@ -369,15 +341,17 @@
       "bid_end": "202704141700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6634574,
+      "lng": 127.527376,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -395,22 +369,24 @@
       "bid_end": "202704141700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.66012,
+      "lng": 126.9054,
       "road": null,
       "water": null,
       "sewer": null,
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     }
   ],
   "enrichment": {
-    "geocoded": 11,
+    "geocoded": 12,
     "routed": 0,
-    "unmatched": 3,
-    "requests": 15,
+    "unmatched": 1,
+    "requests": 13,
     "provider": "OpenStreetMap Nominatim",
     "geocode_configured": true,
     "route_configured": false
