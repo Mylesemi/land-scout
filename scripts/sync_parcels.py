@@ -2,7 +2,7 @@
 
 Never fabricate a polygon or treat locality centroids as cadastral boundaries.
 """
-import json, os, re, urllib.parse, urllib.request
+import json, os, re, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 
 INPUT = Path("data/auctions.json")
@@ -17,8 +17,15 @@ def fetch_parcel(pnu):
               "geometry": "true", "crs": "EPSG:4326"}
     url = BASE + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": "LAND-SCOUT/1.0"})
-    with urllib.request.urlopen(req, timeout=25) as response:
-        data = json.load(response)
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=25) as result:
+                data = json.load(result)
+            break
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as exc:
+            if attempt == 2:
+                raise
+            time.sleep((2, 5)[attempt])
     response = data.get("response") or {}
     if response.get("status") != "OK":
         err = response.get("error") or {}
@@ -50,6 +57,8 @@ def main():
                 feature = fetch_parcel(pnu)
                 if feature:
                     existing[pnu] = feature
+            except urllib.error.HTTPError as exc:
+                print("Parcel HTTP failure for", pnu, "status", exc.code)
             except Exception as exc:
                 print("Parcel request failed for", pnu, type(exc).__name__)
     else:
