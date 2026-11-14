@@ -15,7 +15,7 @@
       "over_budget": 79
     }
   },
-  "updated": "2026-11-14T06:41:44.784491+00:00",
+  "updated": "2026-11-14T23:38:24.209662+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -386,7 +386,7 @@
     "geocoded": 12,
     "routed": 0,
     "unmatched": 1,
-    "requests": 13,
+    "requests": 12,
     "provider": "OpenStreetMap Nominatim",
     "geocode_configured": true,
     "route_configured": false
