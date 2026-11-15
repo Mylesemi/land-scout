@@ -16,7 +16,7 @@
       "not_sale": 0
     }
   },
-  "updated": "2026-11-15T00:00:59.488955+00:00",
+  "updated": "2026-11-15T00:17:26.283602+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -82,7 +82,7 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -148,7 +148,7 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable",
+      "parcel_status": "provider_error",
       "location_precision": "area",
       "geocode_source": "OSM approximate locality (not property location)"
     },
@@ -643,8 +643,8 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
@@ -652,7 +652,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -675,8 +677,8 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
@@ -684,7 +686,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -773,8 +777,8 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
@@ -782,7 +786,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -837,8 +843,8 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6778734,
+      "lng": 126.8133169,
       "road": null,
       "water": null,
       "sewer": null,
@@ -846,7 +852,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -933,8 +941,8 @@
       "bid_end": "202703311700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8287475,
+      "lng": 126.8400618,
       "road": null,
       "water": null,
       "sewer": null,
@@ -942,7 +950,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -1879,8 +1889,8 @@
       "bid_end": "202703171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
@@ -1888,7 +1898,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -1911,8 +1923,8 @@
       "bid_end": "202703171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
@@ -1920,7 +1932,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -2009,8 +2023,8 @@
       "bid_end": "202703171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
@@ -2018,7 +2032,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -2073,8 +2089,8 @@
       "bid_end": "202703171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6778734,
+      "lng": 126.8133169,
       "road": null,
       "water": null,
       "sewer": null,
@@ -2082,7 +2098,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -2169,8 +2187,8 @@
       "bid_end": "202703171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8287475,
+      "lng": 126.8400618,
       "road": null,
       "water": null,
       "sewer": null,
@@ -2178,7 +2196,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -3403,8 +3423,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
@@ -3412,7 +3432,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -3595,8 +3617,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
@@ -3604,7 +3626,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -3693,8 +3717,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
@@ -3702,7 +3726,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4045,8 +4071,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6778734,
+      "lng": 126.8133169,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4054,7 +4080,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4141,8 +4169,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8287475,
+      "lng": 126.8400618,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4150,7 +4178,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6015,8 +6045,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6024,7 +6054,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6207,8 +6239,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.4911516,
+      "lng": 126.7838692,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6216,7 +6248,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6305,8 +6339,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2979,
+      "lng": 127.41819,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6314,7 +6348,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6753,8 +6789,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6778734,
+      "lng": 126.8133169,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6762,7 +6798,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6849,8 +6887,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8287475,
+      "lng": 126.8400618,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6858,7 +6896,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -9713,8 +9753,8 @@
       "bid_end": "202702031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.96913,
+      "lng": 126.79654,
       "road": null,
       "water": null,
       "sewer": null,
@@ -9722,7 +9762,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "unavailable"
+      "parcel_status": "unavailable",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -10080,7 +10122,7 @@
       "source": "온비드",
       "lot_id": "2026-1000-054858",
       "condition_id": "6228323",
-      "address": "경기도 양주시 백석읍",
+      "address": "경기도 양주시 백석읍 방성리 177-4",
       "min_price": 86000000,
       "disposal": "매각",
       "share": false,
@@ -10090,7 +10132,7 @@
       "land_area": null,
       "building_area": 53.07,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4163025021101770004",
       "category": "부동산 주거용건물 다세대주택",
       "name": "경기도 양주시 백석읍 방성리 177-4외 2필지, 제B동 203호 매각",
       "bid_start": "202610191000",
@@ -10105,7 +10147,8 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -14015,7 +14058,7 @@
       "source": "온비드",
       "lot_id": "2025-0900-068631",
       "condition_id": "6022870",
-      "address": "경기도 파주시 파주읍",
+      "address": "경기도 파주시 파주읍 봉서리 434",
       "min_price": 87000000,
       "disposal": "매각",
       "share": false,
@@ -14040,13 +14083,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2025-0900-068632",
       "condition_id": "6022869",
-      "address": "경기도 파주시 파주읍",
+      "address": "경기도 파주시 파주읍 봉서리 434",
       "min_price": 87000000,
       "disposal": "매각",
       "share": false,
@@ -14071,7 +14115,8 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -14547,7 +14592,7 @@
       "source": "온비드",
       "lot_id": "2026-0500-027760",
       "condition_id": "5997882",
-      "address": "경기도 파주시 파주읍",
+      "address": "경기 파주시 파주읍 봉서리 254-26",
       "min_price": 94000000,
       "disposal": "매각",
       "share": false,
@@ -14572,7 +14617,8 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -15090,7 +15136,7 @@
       "source": "온비드",
       "lot_id": "2026-0500-028277",
       "condition_id": "6010081",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 29900000,
       "disposal": "매각",
       "share": false,
@@ -15100,7 +15146,7 @@
       "land_area": null,
       "building_area": 24.82,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 401호 매각",
       "bid_start": "202606101400",
@@ -15115,13 +15161,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028278",
       "condition_id": "6010082",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 29900000,
       "disposal": "매각",
       "share": false,
@@ -15131,7 +15178,7 @@
       "land_area": null,
       "building_area": 24.82,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 405호 매각",
       "bid_start": "202606101400",
@@ -15146,13 +15193,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028280",
       "condition_id": "6010083",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 29900000,
       "disposal": "매각",
       "share": false,
@@ -15162,7 +15210,7 @@
       "land_area": null,
       "building_area": 24.82,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 406호 매각",
       "bid_start": "202606101400",
@@ -15177,13 +15225,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028281",
       "condition_id": "6010084",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 29900000,
       "disposal": "매각",
       "share": false,
@@ -15193,7 +15242,7 @@
       "land_area": null,
       "building_area": 24.82,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 501호 매각",
       "bid_start": "202606101400",
@@ -15208,13 +15257,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028284",
       "condition_id": "6010085",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 32400000,
       "disposal": "매각",
       "share": false,
@@ -15224,7 +15274,7 @@
       "land_area": null,
       "building_area": 26.62,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 815호 매각",
       "bid_start": "202606101400",
@@ -15239,13 +15289,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028286",
       "condition_id": "6010086",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 32400000,
       "disposal": "매각",
       "share": false,
@@ -15255,7 +15306,7 @@
       "land_area": null,
       "building_area": 26.62,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 816호 매각",
       "bid_start": "202606101400",
@@ -15270,13 +15321,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028287",
       "condition_id": "6010087",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 32400000,
       "disposal": "매각",
       "share": false,
@@ -15286,7 +15338,7 @@
       "land_area": null,
       "building_area": 26.62,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 817호 매각",
       "bid_start": "202606101400",
@@ -15301,13 +15353,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028289",
       "condition_id": "6010088",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 30500000,
       "disposal": "매각",
       "share": false,
@@ -15317,7 +15370,7 @@
       "land_area": null,
       "building_area": 24.82,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 906호 매각",
       "bid_start": "202606101400",
@@ -15332,13 +15385,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028290",
       "condition_id": "6010089",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 31100000,
       "disposal": "매각",
       "share": false,
@@ -15348,7 +15402,7 @@
       "land_area": null,
       "building_area": 25.49,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 911호 매각",
       "bid_start": "202606101400",
@@ -15363,13 +15417,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028291",
       "condition_id": "6010090",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 31100000,
       "disposal": "매각",
       "share": false,
@@ -15379,7 +15434,7 @@
       "land_area": null,
       "building_area": 25.49,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 1009호 매각",
       "bid_start": "202606101400",
@@ -15394,13 +15449,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2026-0500-028292",
       "condition_id": "6010091",
-      "address": "경기도 평택시 포승읍",
+      "address": "경기도 평택시 포승읍 만호리 574-7",
       "min_price": 31100000,
       "disposal": "매각",
       "share": false,
@@ -15410,7 +15466,7 @@
       "land_area": null,
       "building_area": 25.49,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4122025624105740007",
       "category": "부동산 주거용건물 도시형생활주택",
       "name": "경기도 평택시 포승읍 만호리 574-7외 1필지, 1010호 매각",
       "bid_start": "202606101400",
@@ -15425,7 +15481,8 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -15559,7 +15616,7 @@
       "source": "온비드",
       "lot_id": "2025-0800-060341",
       "condition_id": "5949343",
-      "address": "경기도 광주시 도척면",
+      "address": "경기도 광주시 도척면 방도리 512-1",
       "min_price": 48000000,
       "disposal": "매각",
       "share": false,
@@ -15584,13 +15641,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2025-0800-060342",
       "condition_id": "5949342",
-      "address": "경기도 광주시 도척면",
+      "address": "경기도 광주시 도척면 방도리 512-1",
       "min_price": 30000000,
       "disposal": "매각",
       "share": false,
@@ -15615,13 +15673,14 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
       "lot_id": "2025-0800-060343",
       "condition_id": "5949341",
-      "address": "경기도 광주시 도척면",
+      "address": "경기도 광주시 도척면 방도리 512-1",
       "min_price": 42000000,
       "disposal": "매각",
       "share": false,
@@ -15646,7 +15705,8 @@
       "grid": null,
       "sunlight": null,
       "legal": null,
-      "url": null
+      "url": null,
+      "parcel_status": "unavailable"
     },
     {
       "source": "온비드",
@@ -16288,24 +16348,24 @@
   ],
   "parcels": {
     "status": "provider_error",
-    "checked_at": "2026-11-15T00:01:29.585795+00:00",
+    "checked_at": "2026-11-15T00:17:53.962230+00:00",
     "key_configured": true,
     "verified_parcels": 0,
     "verified_items": 0,
     "unresolved_items": 506,
     "requests": 3,
+    "deferred_items": 0,
     "errors": {
-      "NETWORK_ERROR": 1,
-      "HTTP_502": 2
+      "HTTP_502": 3
     }
   },
   "enrichment": {
-    "geocoded": 52,
+    "geocoded": 73,
     "parcel_geocoded": 0,
     "exact": 0,
-    "approximate": 52,
+    "approximate": 73,
     "routed": 0,
-    "unmatched": 454,
+    "unmatched": 433,
     "requests": 15,
     "provider": "VWorld / OpenStreetMap Nominatim",
     "geocode_configured": true,

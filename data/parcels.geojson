@@ -3,15 +3,20 @@
   "features": [],
   "sync": {
     "status": "provider_error",
-    "checked_at": "2026-11-15T00:01:29.585795+00:00",
+    "checked_at": "2026-11-15T00:17:53.962230+00:00",
     "key_configured": true,
     "verified_parcels": 0,
     "verified_items": 0,
     "unresolved_items": 506,
     "requests": 3,
+    "deferred_items": 0,
     "errors": {
-      "NETWORK_ERROR": 1,
-      "HTTP_502": 2
+      "HTTP_502": 3
     }
+  },
+  "lookup_attempts": {
+    "경기도 용인시 처인구 모현읍 능원리 71-12": "2026-11-15T00:17:26.367623+00:00",
+    "경기도 군포시 당동 957-2": "2026-11-15T00:17:35.659681+00:00",
+    "경기도 군포시 금정동 47-24": "2026-11-15T00:17:45.087256+00:00"
   }
 }
