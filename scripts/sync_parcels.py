@@ -1,4 +1,4 @@
-"""Resolve and verify cadastral polygons without exposing the VWorld key."""
+"""Collect public Gyeonggi cadastral polygons with an optional VWorld fallback."""
 import json
 import math
 import os
@@ -17,7 +17,7 @@ OUTPUT = Path("data/parcels.geojson")
 KEY = os.getenv("VWORLD_API_KEY", "").strip()
 DOMAIN = os.getenv("VWORLD_API_DOMAIN", "").strip() or "https://mylesemi.github.io"
 BASE = "https://api.vworld.kr"
-MAX_REQUESTS = min(200, max(1, int(os.getenv("VWORLD_REQUEST_BUDGET", "60"))))
+MAX_REQUESTS = min(200, max(1, int(os.getenv("PARCEL_REQUEST_BUDGET", os.getenv("VWORLD_REQUEST_BUDGET", "150")))))
 
 
 class ProviderError(Exception):
@@ -105,7 +105,7 @@ def valid_geometry(geometry):
     return True
 
 
-def verified_feature(feature, pnu, address):
+def verified_feature(feature, pnu, address, source="VWorld 연속지적도"):
     props = feature.get("properties") or {}
     if str(props.get("pnu") or props.get("PNU") or "") != pnu or not valid_geometry(feature.get("geometry")):
         return None
@@ -114,7 +114,7 @@ def verified_feature(feature, pnu, address):
         return None
     return {
         "type": "Feature",
-        "properties": {"pnu": pnu, "address": address, "source": "VWorld 연속지적도",
+        "properties": {"pnu": pnu, "address": address, "source": source,
                        "verified_at": datetime.now(timezone.utc).isoformat()},
         "geometry": feature["geometry"],
     }
@@ -141,74 +141,127 @@ def representative_point(geometry):
             (min(p[0] for p in points) + max(p[0] for p in points)) / 2]
 
 
+def fetch_gyeonggi_parcel(pnu, address):
+    """Public Gyeonggi cadastral query; no API key or browser session required."""
+    if not valid_pnu(pnu) or not pnu.startswith("41"):
+        return None
+    base = "https://gris.gg.go.kr:8888/grisgis/rest/services/bdsMap_Cbnd/MapServer/2/query"
+    # This ArcGIS service does not support pagination. Equality on the full
+    # validated PNU selects the parcel without a resultRecordCount parameter.
+    params = {"f": "geojson", "where": "PNU='" + pnu + "'", "outFields": "PNU,JIBUN",
+              "returnGeometry": "true", "outSR": "4326"}
+    request = urllib.request.Request(base + "?" + urllib.parse.urlencode(params),
+                                    headers={"User-Agent": "LandScout/1.0 (https://github.com/Mylesemi/land-scout)"})
+    try:
+        with urllib.request.urlopen(request, timeout=25) as response:
+            data = json.load(response)
+    except urllib.error.HTTPError as exc:
+        raise ProviderError("HTTP_" + str(exc.code)) from None
+    except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
+        raise ProviderError("NETWORK_ERROR") from None
+    except (ValueError, TypeError):
+        raise ProviderError("INVALID_RESPONSE") from None
+    if not isinstance(data, dict) or data.get("error"):
+        raise ProviderError("INVALID_RESPONSE")
+    if data.get("type") != "FeatureCollection" or not isinstance(data.get("features"), list):
+        raise ProviderError("INVALID_RESPONSE")
+    for feature in data["features"]:
+        checked = verified_feature(feature, pnu, address, "경기부동산포털 연속지적도")
+        if checked:
+            jibun = str(feature.get("properties", {}).get("JIBUN") or "")
+            number = re.match(r"^(산\s*)?(\d+)(?:-(\d+))?(?=\s|$)", jibun)
+            target = parcel_address(address)
+            if jibun and (not number or not target or
+                          (bool(number[1]), int(number[2]), int(number[3] or 0)) !=
+                          (target["mountain"], target["main"], target["sub"])):
+                continue
+            checked["properties"]["source_url"] = "https://gris.gg.go.kr/map/main/grisMapView.do?mapCd=01&pnu=" + pnu
+            checked["properties"]["provider_jibun"] = str(feature.get("properties", {}).get("JIBUN") or "")
+            return checked
+    return None
+
+
 def main():
     data = json.loads(INPUT.read_text(encoding="utf-8"))
     previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
     cached = {str(f.get("properties", {}).get("pnu")): f for f in previous.get("features", [])
               if valid_pnu(f.get("properties", {}).get("pnu")) and valid_geometry(f.get("geometry"))}
-    features, errors, attempts, unresolved, failures, deferred = {}, {}, 0, 0, 0, 0
-    resolved_addresses = {}
-    attempted_parcels = {}
-    lookup_history = previous.get("lookup_attempts") or {}
-    lookup_history = {k: v for k, v in lookup_history.items()
-                      if any(k == (parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address")
-                             for x in data.get("items", []))}
-    # New addresses take priority next time; exhausted batches cannot starve
-    # later properties when the provider has no result for an earlier address.
+    features, errors, attempts, unresolved, deferred = {}, {}, 0, 0, 0
+    failures = {"gyeonggi": 0, "vworld": 0}
+    resolved_addresses, attempted_parcels = {}, {}
+    addresses = {(parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address")
+                 for x in data.get("items", [])}
+    lookup_history = {k: v for k, v in (previous.get("lookup_attempts") or {}).items() if k in addresses}
     ordered = sorted(data.get("items", []),
                      key=lambda x: lookup_history.get((parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address"), ""))
+
+    def record_error(provider, exc):
+        code = provider.upper() + "_" + str(exc)
+        errors[code] = errors.get(code, 0) + 1
+        failures[provider] += 1
+        if re.search("KEY|DOMAIN|AUTH", str(exc)):
+            failures[provider] = 3
+        print("Cadastral provider unavailable:", code, flush=True)
+
     for item in ordered:
-        address = parcel_address(item.get("name")) or parcel_address(item.get("address"))
-        if not address:
-            item["pnu"] = None
+        target = parcel_address(item.get("name")) or parcel_address(item.get("address"))
+        if not target:
+            item["pnu"], item["parcel_status"] = None, "address_unresolved"
             unresolved += 1
             continue
-        address = address["address"]
+        address = target["address"]
         raw = item.get("provider_pnu") or item.get("pnu")
         item["provider_pnu"] = raw
         pnu = candidate_pnu(raw, address)
-        try:
-            if not pnu and KEY and failures < 3 and attempts < MAX_REQUESTS:
-                if address not in resolved_addresses:
-                    attempts += 1
-                    lookup_history[address] = datetime.now(timezone.utc).isoformat()
-                    resolved_addresses[address] = resolve_pnu(address)
-                pnu = resolved_addresses[address]
-            item["pnu"] = pnu
-            feature = features.get(pnu) or cached.get(pnu)
-            if feature and not same_lot(feature.get("properties", {}).get("address"), parcel_address(address)):
-                feature = None
-            if not feature and KEY and pnu and pnu not in attempted_parcels and failures < 3 and attempts < MAX_REQUESTS:
+        if not pnu:
+            # Reuse a previously verified full-address match before any lookup.
+            pnu = next((key for key, feature in cached.items()
+                        if same_lot(feature.get("properties", {}).get("address"), target)), None)
+        if not pnu and KEY and failures["vworld"] < 3 and attempts < MAX_REQUESTS:
+            if address not in resolved_addresses:
                 attempts += 1
                 lookup_history[address] = datetime.now(timezone.utc).isoformat()
-                attempted_parcels[pnu] = None
-                attempted_parcels[pnu] = fetch_parcel(pnu, address)
-            feature = feature or attempted_parcels.get(pnu)
-            if feature:
-                features[pnu] = feature
-                item["lat"], item["lng"] = representative_point(feature["geometry"])
-                item["location_precision"] = "parcel"
-                item["geocode_source"] = "VWorld verified cadastral boundary"
-                item["parcel_status"] = "verified"
-            else:
-                pending = attempts >= MAX_REQUESTS and pnu not in attempted_parcels
-                deferred += int(pending)
-                item["parcel_status"] = "pending" if pending else "unavailable" if failures else "not_found" if KEY else "not_configured"
-                unresolved += 1
-        except ProviderError as exc:
-            code = str(exc)
-            errors[code] = errors.get(code, 0) + 1
-            failures += 1
-            item["pnu"] = pnu
-            item["parcel_status"] = "provider_error"
+                try:
+                    resolved_addresses[address] = resolve_pnu(address)
+                except ProviderError as exc:
+                    record_error("vworld", exc)
+                    resolved_addresses[address] = None
+            pnu = resolved_addresses[address]
+        item["pnu"] = pnu
+        feature = features.get(pnu) or cached.get(pnu)
+        if feature and not same_lot(feature.get("properties", {}).get("address"), target):
+            feature = None
+        if not feature and pnu and pnu not in attempted_parcels and attempts < MAX_REQUESTS:
+            attempted_parcels[pnu] = None
+            lookup_history[address] = datetime.now(timezone.utc).isoformat()
+            if failures["gyeonggi"] < 3:
+                attempts += 1
+                try:
+                    attempted_parcels[pnu] = fetch_gyeonggi_parcel(pnu, address)
+                except ProviderError as exc:
+                    record_error("gyeonggi", exc)
+            if not attempted_parcels[pnu] and KEY and failures["vworld"] < 3 and attempts < MAX_REQUESTS:
+                attempts += 1
+                try:
+                    attempted_parcels[pnu] = fetch_parcel(pnu, address)
+                except ProviderError as exc:
+                    record_error("vworld", exc)
+        feature = feature or attempted_parcels.get(pnu)
+        if feature:
+            features[pnu] = feature
+            item["lat"], item["lng"] = representative_point(feature["geometry"])
+            item["location_precision"] = "parcel"
+            item["geocode_source"] = feature["properties"]["source"]
+            item["parcel_status"] = "verified"
+        else:
+            pending = attempts >= MAX_REQUESTS and (not pnu or pnu not in attempted_parcels)
+            deferred += int(pending)
+            item["parcel_status"] = "pending" if pending else "provider_error" if errors else "not_found"
             unresolved += 1
-            print("VWorld request unavailable:", code, flush=True)
-            if code.startswith(("INVALID_KEY", "UNREGISTERED", "INVALID_DOMAIN", "INCORRECT_KEY")):
-                failures = 3
     report = {
-        "status": "not_configured" if not KEY else "partial" if errors and features else
-                  "provider_error" if errors else "pending" if deferred else "complete",
+        "status": "partial" if errors and features else "provider_error" if errors else "pending" if deferred else "complete",
         "checked_at": datetime.now(timezone.utc).isoformat(), "key_configured": bool(KEY),
+        "primary_provider": "경기부동산포털",
         "verified_parcels": len(features), "verified_items": sum(x.get("parcel_status") == "verified" for x in data.get("items", [])),
         "unresolved_items": unresolved, "requests": attempts, "deferred_items": deferred, "errors": errors,
     }

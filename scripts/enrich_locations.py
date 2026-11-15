@@ -71,7 +71,7 @@ def main():
         return
     data = json.loads(DATA.read_text(encoding="utf-8"))
     cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
-    stats = {"geocoded": 0, "parcel_geocoded": 0, "exact": 0, "approximate": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "VWorld / OpenStreetMap Nominatim"}
+    stats = {"geocoded": 0, "parcel_geocoded": 0, "exact": 0, "approximate": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "경기부동산포털 / VWorld / OpenStreetMap Nominatim"}
     area_cache = {}
     for item in data.get("items", []):
         if item.get("parcel_status") == "verified" and item.get("location_precision") == "parcel":

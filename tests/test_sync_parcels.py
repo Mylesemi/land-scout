@@ -74,15 +74,54 @@ class ParcelTests(unittest.TestCase):
             src, dst = Path(folder)/"auctions.json", Path(folder)/"parcels.geojson"
             src.write_text(json.dumps({"items":rows}))
             dst.write_text(json.dumps({"features":[cached]}))
-            with patch.multiple(parcels,INPUT=src,OUTPUT=dst,KEY="test-only"), patch.object(parcels,"fetch_parcel",side_effect=parcels.ProviderError("HTTP_502")), contextlib.redirect_stdout(io.StringIO()):
+            with patch.multiple(parcels,INPUT=src,OUTPUT=dst,KEY="test-only"), patch.object(parcels,"fetch_gyeonggi_parcel",return_value=None), patch.object(parcels,"fetch_parcel",side_effect=parcels.ProviderError("HTTP_502")), contextlib.redirect_stdout(io.StringIO()):
                 parcels.main()
             output=json.loads(dst.read_text())
             items=json.loads(src.read_text())["items"]
             self.assertEqual(output["sync"]["status"],"partial")
-            self.assertEqual(output["sync"]["errors"],{"HTTP_502":1})
+            self.assertEqual(output["sync"]["errors"],{"VWORLD_HTTP_502":1})
             self.assertEqual(output["sync"]["verified_items"],1)
             self.assertEqual(items[0]["location_precision"],"parcel")
             self.assertEqual(items[1]["parcel_status"],"provider_error")
+
+    def test_gyeonggi_reads_real_geojson_without_pagination_or_key(self):
+        import urllib.parse
+        response={"type":"FeatureCollection","features":[{**FEATURE,"properties":{"PNU":PNU,"JIBUN":"957-2 대"}}]}
+        with patch.object(parcels.urllib.request,"urlopen",return_value=io.BytesIO(json.dumps(response).encode())) as request:
+            feature=parcels.fetch_gyeonggi_parcel(PNU,ADDRESS)
+            self.assertEqual(feature["properties"]["source"],"경기부동산포털 연속지적도")
+            params=urllib.parse.parse_qs(urllib.parse.urlparse(request.call_args.args[0].full_url).query)
+            self.assertEqual(params["outSR"],["4326"])
+            self.assertNotIn("resultRecordCount",params)
+            self.assertNotIn("key",params)
+        response["features"][0]["properties"]["JIBUN"]="957-3 대"
+        with patch.object(parcels.urllib.request,"urlopen",return_value=io.BytesIO(json.dumps(response).encode())):
+            self.assertIsNone(parcels.fetch_gyeonggi_parcel(PNU,ADDRESS))
+
+    def test_keyless_boundary_collection_reuses_same_parcel(self):
+        rows=[{"lot_id":name,"name":ADDRESS,"pnu":"4141010100009570002"} for name in ("A","B")]
+        checked=parcels.verified_feature(FEATURE,PNU,ADDRESS,"경기부동산포털 연속지적도")
+        with tempfile.TemporaryDirectory() as folder:
+            src,dst=Path(folder)/"auctions.json",Path(folder)/"parcels.geojson"
+            src.write_text(json.dumps({"items":rows}))
+            with patch.multiple(parcels,INPUT=src,OUTPUT=dst,KEY=""), patch.object(parcels,"fetch_gyeonggi_parcel",return_value=checked) as fetch, contextlib.redirect_stdout(io.StringIO()):
+                parcels.main()
+            report=json.loads(dst.read_text())["sync"]
+            self.assertEqual(report["verified_items"],2)
+            self.assertEqual(report["status"],"complete")
+            self.assertFalse(report["key_configured"])
+            self.assertEqual(fetch.call_count,1)
+
+    def test_next_batch_prioritizes_previously_unqueried_addresses(self):
+        rows=[{"name":ADDRESS,"pnu":"4141010100009570002"},{"name":ADDRESS.replace("957","958"),"pnu":"4141010100009580002"}]
+        with tempfile.TemporaryDirectory() as folder:
+            src,dst=Path(folder)/"auctions.json",Path(folder)/"parcels.geojson"
+            src.write_text(json.dumps({"items":rows}))
+            with patch.multiple(parcels,INPUT=src,OUTPUT=dst,KEY="",MAX_REQUESTS=1), patch.object(parcels,"fetch_gyeonggi_parcel",return_value=None) as fetch, contextlib.redirect_stdout(io.StringIO()):
+                parcels.main()
+                self.assertEqual(json.loads(dst.read_text())["sync"]["status"],"pending")
+                parcels.main()
+            self.assertEqual([call.args[0] for call in fetch.call_args_list],[PNU,"4141010100109580002"])
 
     def test_never_prints_secret_in_provider_exception(self):
         secret = "private-test-token"

@@ -34,7 +34,7 @@ GitHub 저장소 Settings → Secrets and variables → Actions:
 | 종류 | 이름 | 용도 |
 | --- | --- | --- |
 | Secret | DATA_GO_KR_API_KEY | 공공데이터포털 온비드 API 키 |
-| Secret | VWORLD_API_KEY | VWorld 경계 조회 키 |
+| Secret | VWORLD_API_KEY | 선택 사항. VWorld 보조 경계·주소 조회 키 |
 | Variable | ONBID_LIST_ENDPOINT | 선택 사항. 기본값은 아래 공식 목록 operation |
 | Variable | VWORLD_API_DOMAIN | 키에 등록한 도메인. 기본값 https://mylesemi.github.io |
 
@@ -45,14 +45,18 @@ ONBID_DETAIL_ENDPOINT는 현재 수집기가 사용하지 않습니다.
 
 ## 필지 경계 검증
 
+경기도 공식 경기부동산포털의 공개 연속지적도 REST 서비스에서 먼저 조회합니다. API 키와 로그인 없이 PNU 동등 조건으로 도형과 지번만 요청하며 좌표계는 EPSG:4326입니다. 확인된 PNU와 JIBUN을 매물 지번과 대조하고 출처 및 공식 지적도 링크를 함께 저장합니다. 공개 서비스가 제공하지 않는 도형은 선택적으로 VWorld에서 보완합니다.
+
+공개 서비스의 query는 페이지 분할을 지원하지 않으므로 resultRecordCount 등을 붙이지 않습니다. 전체 필지 목록 대신 대상 물건의 PNU 1개만 조회합니다.
+
 - 온비드 원본 식별자는 provider_pnu에 보존합니다.
 - 응답에서 관측된 일반/산 구분값을 그대로 신뢰하지 않고 매물명의 지번과 대조해 표준 19자리 PNU 후보를 만듭니다. 본번·부번이 다르면 그 식별자는 사용하지 않습니다.
 - 후보가 없는 경우 VWorld 주소 검색의 정확한 지번 결과로 식별자를 찾습니다. 다른 시·군의 같은 동 이름이나 인근 번지는 허용하지 않습니다.
-- VWorld 연속지적도 LP_PA_CBND_BUBUN에 attrFilter=pnu:=:<PNU>를 전달합니다. 응답 PNU, 주소(제공된 경우), Polygon/MultiPolygon 좌표를 검증한 도형만 게시합니다.
+- 보조 조회에서는 VWorld 연속지적도 LP_PA_CBND_BUBUN에 attrFilter=pnu:=:<PNU>를 전달합니다. 응답 PNU, 주소(제공된 경우), Polygon/MultiPolygon 좌표를 검증한 도형만 게시합니다.
 - 경계 중심은 지도 표시용입니다. 도로 진입점이나 실주행 경로의 검증 좌표로 취급하지 않습니다.
 - 확인된 도형은 보존합니다. 미확인 필지를 면적에 맞춘 사각형이나 원으로 대신 그리지 않습니다.
-- 조회는 기본 60건으로 제한하며 VWORLD_REQUEST_BUDGET 환경변수로 1~200 사이에서 조정할 수 있습니다. 조회 이력을 저장해 다음 실행에서는 아직 조회하지 않은 주소부터 이어갑니다.
-- 3건의 제공처 오류가 발생하면 나머지 요청을 중단합니다. 인증 오류도 무한 재시도하지 않습니다.
+- 조회는 기본 150건으로 제한하며 PARCEL_REQUEST_BUDGET 환경변수(기존 VWORLD_REQUEST_BUDGET도 지원)로 1~200 사이에서 조정할 수 있습니다. 조회 이력을 저장해 다음 실행에서는 아직 조회하지 않은 주소부터 이어갑니다.
+- 같은 제공처에서 3건의 오류가 발생하면 그 제공처 요청을 중단합니다. VWorld 오류가 경기부동산포털 조회까지 중단시키지 않으며 인증 오류도 무한 재시도하지 않습니다.
 - parcels.sync와 auctions.parcels에 조회 상태, 요청 수, 미확인 수, 키를 포함하지 않는 오류 코드를 기록합니다.
 
 | 상태 | 의미 |
@@ -61,9 +65,9 @@ ONBID_DETAIL_ENDPOINT는 현재 수집기가 사용하지 않습니다.
 | pending | 요청 예산에 도달해 다음 실행으로 이어짐 |
 | partial | 제공처 오류가 있었으나 확인된 도형이 있음 |
 | provider_error | 제공처 연결·응답 오류로 신규 경계를 확인하지 못함 |
-| not_configured | 키가 없어 신규 경계를 조회하지 않음 |
 
-2026-11-15 실행에서는 온비드 수집은 성공했으나 VWorld HTTPS 조회에 네트워크 오류와 HTTP 502가 발생했습니다. 이를 인증 성공이나 경계 조회 완료로 표시하지 않습니다. 제공처가 다시 응답하면 기존 일일 작업이 대조를 이어갑니다.
+
+2026-11-15 실행에서는 온비드 수집은 성공했으나 VWorld HTTPS 조회에 네트워크 오류와 HTTP 502가 발생했습니다. 이후 경기부동산포털의 공개 도형 조회를 우선 사용하는 경로를 연결했습니다. VWorld 보조 조회가 실패해도 키 없이 확인한 필지 도형을 유지하고 나머지 물건 대조를 이어갑니다.
 
 ## 위치·정보 표시
 
@@ -92,5 +96,5 @@ UI 확인 범위: 주소 검색, 종류·지분·가격·위치 필터, 정렬, 
 ## 공식 문서
 
 - [공공데이터포털: 차세대 온비드 부동산 물건목록](https://www.data.go.kr/data/15157207/openapi.do)
-- [VWorld 공식 코드 샘플](https://github.com/V-world/V-world_API_sample)
+- [경기부동산포털 지도서비스](https://gris.gg.go.kr/map/main/grisMapView.do)\n- [VWorld 공식 코드 샘플](https://github.com/V-world/V-world_API_sample)
 - [Nominatim 사용 정책](https://operations.osmfoundation.org/policies/nominatim/)

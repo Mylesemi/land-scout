@@ -223,6 +223,10 @@ function render() {
     const link = document.createElement('a');
     link.href='https://map.naver.com/p/search/' + encodeURIComponent(lot.address); link.target='_blank'; link.rel='noopener noreferrer'; link.textContent='지번으로 지도 검색 ↗';
     actions.append(focus,link);
+    const sourceURL=parcelShapes.get(String(lot.pnu))?.properties?.source_url;
+    if (typeof sourceURL==='string' && sourceURL.startsWith('https://gris.gg.go.kr/map/main/grisMapView.do?')) {
+      const sourceLink=document.createElement('a');sourceLink.href=sourceURL;sourceLink.target='_blank';sourceLink.rel='noopener noreferrer';sourceLink.textContent='공식 지적도 확인 ↗';actions.append(sourceLink);
+    }
     if (typeof lot.url === 'string' && /^https:\/\//.test(lot.url)) {
       const official = document.createElement('a'); official.href=lot.url; official.target='_blank'; official.rel='noopener noreferrer'; official.textContent='공식 공고 ↗'; actions.append(official);
     }
@@ -272,7 +276,7 @@ function updateSummary() {
   else if (report?.status==='provider_error' || report?.status==='partial') {
     const auth=Object.keys(report.errors || {}).some(code=>/KEY|DOMAIN|AUTH/.test(code));
     parcelText=auth ? '경계 조회 인증 설정 확인이 필요합니다. 확인된 필지만 표시합니다.' :
-      '필지 경계 제공처 응답 지연 · 확인된 ' + count + '건만 표시합니다. 다음 자동 수집 때 재시도합니다.';
+      '공식 필지 경계 ' + count + '건 확인 · 일부 주소의 추가 조회는 다음 자동 수집 때 재시도합니다.';
   } else if (report?.status==='pending') parcelText='필지 경계를 순차 대조 중입니다. 확인된 '+count+'건부터 표시하며 나머지는 다음 수집에서 이어집니다.';
   else if (report?.status==='not_configured') parcelText='필지 경계 조회 설정 대기 · 확보된 위치와 지번 검색을 이용하세요.';
   else if (!count) parcelText='아직 대조가 완료된 필지 경계가 없습니다. 노란 마커는 지역 참고 위치입니다.';
