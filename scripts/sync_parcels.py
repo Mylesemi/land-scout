@@ -17,6 +17,7 @@ OUTPUT = Path("data/parcels.geojson")
 KEY = os.getenv("VWORLD_API_KEY", "").strip()
 DOMAIN = os.getenv("VWORLD_API_DOMAIN", "").strip() or "https://mylesemi.github.io"
 BASE = "https://api.vworld.kr"
+MAX_REQUESTS = min(200, max(1, int(os.getenv("VWORLD_REQUEST_BUDGET", "60"))))
 
 
 class ProviderError(Exception):
@@ -145,9 +146,18 @@ def main():
     previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
     cached = {str(f.get("properties", {}).get("pnu")): f for f in previous.get("features", [])
               if valid_pnu(f.get("properties", {}).get("pnu")) and valid_geometry(f.get("geometry"))}
-    features, errors, attempts, unresolved, failures = {}, {}, 0, 0, 0
+    features, errors, attempts, unresolved, failures, deferred = {}, {}, 0, 0, 0, 0
     resolved_addresses = {}
-    for item in data.get("items", []):
+    attempted_parcels = {}
+    lookup_history = previous.get("lookup_attempts") or {}
+    lookup_history = {k: v for k, v in lookup_history.items()
+                      if any(k == (parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address")
+                             for x in data.get("items", []))}
+    # New addresses take priority next time; exhausted batches cannot starve
+    # later properties when the provider has no result for an earlier address.
+    ordered = sorted(data.get("items", []),
+                     key=lambda x: lookup_history.get((parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address"), ""))
+    for item in ordered:
         address = parcel_address(item.get("name")) or parcel_address(item.get("address"))
         if not address:
             item["pnu"] = None
@@ -158,18 +168,22 @@ def main():
         item["provider_pnu"] = raw
         pnu = candidate_pnu(raw, address)
         try:
-            if not pnu and KEY and failures < 3:
+            if not pnu and KEY and failures < 3 and attempts < MAX_REQUESTS:
                 if address not in resolved_addresses:
                     attempts += 1
+                    lookup_history[address] = datetime.now(timezone.utc).isoformat()
                     resolved_addresses[address] = resolve_pnu(address)
                 pnu = resolved_addresses[address]
             item["pnu"] = pnu
             feature = features.get(pnu) or cached.get(pnu)
             if feature and not same_lot(feature.get("properties", {}).get("address"), parcel_address(address)):
                 feature = None
-            if not feature and KEY and pnu and failures < 3:
+            if not feature and KEY and pnu and pnu not in attempted_parcels and failures < 3 and attempts < MAX_REQUESTS:
                 attempts += 1
-                feature = fetch_parcel(pnu, address)
+                lookup_history[address] = datetime.now(timezone.utc).isoformat()
+                attempted_parcels[pnu] = None
+                attempted_parcels[pnu] = fetch_parcel(pnu, address)
+            feature = feature or attempted_parcels.get(pnu)
             if feature:
                 features[pnu] = feature
                 item["lat"], item["lng"] = representative_point(feature["geometry"])
@@ -177,7 +191,9 @@ def main():
                 item["geocode_source"] = "VWorld verified cadastral boundary"
                 item["parcel_status"] = "verified"
             else:
-                item["parcel_status"] = "unavailable" if failures else "not_found" if KEY else "not_configured"
+                pending = attempts >= MAX_REQUESTS and pnu not in attempted_parcels
+                deferred += int(pending)
+                item["parcel_status"] = "pending" if pending else "unavailable" if failures else "not_found" if KEY else "not_configured"
                 unresolved += 1
         except ProviderError as exc:
             code = str(exc)
@@ -191,13 +207,14 @@ def main():
                 failures = 3
     report = {
         "status": "not_configured" if not KEY else "partial" if errors and features else
-                  "provider_error" if errors else "complete",
+                  "provider_error" if errors else "pending" if deferred else "complete",
         "checked_at": datetime.now(timezone.utc).isoformat(), "key_configured": bool(KEY),
         "verified_parcels": len(features), "verified_items": sum(x.get("parcel_status") == "verified" for x in data.get("items", [])),
-        "unresolved_items": unresolved, "requests": attempts, "errors": errors,
+        "unresolved_items": unresolved, "requests": attempts, "deferred_items": deferred, "errors": errors,
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps({"type": "FeatureCollection", "features": list(features.values()), "sync": report},
+    OUTPUT.write_text(json.dumps({"type": "FeatureCollection", "features": list(features.values()), "sync": report,
+                                 "lookup_attempts": lookup_history},
                                  ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     data["parcels"] = report
     INPUT.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

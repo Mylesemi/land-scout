@@ -9,6 +9,7 @@ on:
       - 'scripts/location_utils.py'
       - 'data/geocode_cache.json'
       - 'tests/**'
+      - 'app-data.js'
       - '.github/workflows/sync-onbid.yml'
   schedule:
     - cron: '20 0 * * *'
@@ -26,7 +27,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Offline regression tests
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+          node --check app.js
+          node --test tests/test_frontend.cjs
       - name: Fetch official API
         env:
           DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}

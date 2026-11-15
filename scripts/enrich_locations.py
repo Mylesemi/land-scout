@@ -29,18 +29,17 @@ def geocode(address):
     # Nominatim may return a road/neighborhood centroid for an unrecognized lot.
     # Accept only results whose full display address explicitly contains the lot
     # number and relevant locality; reject all ambiguous matches.
-    parts = address.split()
-    lot = re.search(r"(?:산\s*)?\d+(?:-\d+)?$", address)
-    if not lot or len(parts) < 4:
+    lot = parcel_address(address)
+    if not lot:
         return None
-    locality = parts[-2]
+    number = ("산" if lot["mountain"] else "") + str(lot["main"]) + ("-" + str(lot["sub"]) if lot["sub"] else "")
     for result in results:
         display = str(result.get("display_name", ""))
         details = result.get("address") or {}
         house = str(details.get("house_number") or "")
-        if normalize(locality) not in normalize(display):
+        if not all(normalize(part) in normalize(display) for part in lot["district"].split()):
             continue
-        if normalize(house) != normalize(lot.group(0)):
+        if normalize(house) != normalize(number):
             continue
         lat, lon = float(result["lat"]), float(result["lon"])
         if 36.0 <= lat <= 39.0 and 126.0 <= lon <= 128.8:
@@ -48,20 +47,19 @@ def geocode(address):
     return None
 
 def area_geocode(address):
-    parts = address.split()
-    if len(parts) < 3:
+    lot = parcel_address(address)
+    if not lot:
         return None
     # Search only the locality, and explicitly label this as an approximate area.
-    area = " ".join(parts[:-1])
+    area = lot["district"]
     params = urllib.parse.urlencode({"q": area, "format": "jsonv2", "limit": 5, "addressdetails": 1})
     req = urllib.request.Request("https://nominatim.openstreetmap.org/search?" + params,
                                  headers={"User-Agent": AGENT, "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=20) as resp:
         results = json.load(resp)
-    locality = parts[-2]
     for result in results:
         display = normalize(result.get("display_name", ""))
-        if normalize(locality) not in display:
+        if not all(normalize(part) in display for part in lot["district"].split()):
             continue
         lat, lon = float(result["lat"]), float(result["lon"])
         if 36.0 <= lat <= 39.0 and 126.0 <= lon <= 128.8:
@@ -103,7 +101,7 @@ def main():
                 continue
         coords = cache[address]
         if coords is None:
-            area = " ".join(address.split()[:-1])
+            area = parcel_address(address)["district"]
             cache_key = "area:" + area
             if cache_key in cache:
                 area_cache[area] = cache[cache_key]

@@ -5,17 +5,19 @@ import re
 def parcel_address(value):
     """Return only the leading, complete Korean cadastral address."""
     match = re.match(
-        r"^\s*((?:경기도|경기)\s+.+?(?:동|가|리)\s+(산\s*)?(\d{1,4})(?:-(\d{1,4}))?)(?=\s|$|[,，(])",
+        r"^\s*((?:경기도|경기)\s+.+?(?:동|가|리)\s+(산\s*)?(\d{1,4})(?:-(\d{1,4}))?)(?=\s|$|[,，(]|외)",
         str(value or ""),
     )
     if not match or int(match[3]) == 0:
         return None
+    district = re.sub(r"\s+(?:산\s*)?\d.*$", "", match[1])
     return {
         "address": re.sub(r"\s+", " ", match[1]).strip(),
         "mountain": bool(match[2]),
         "main": int(match[3]),
         "sub": int(match[4] or 0),
-        "locality": re.sub(r"\s+(?:산\s*)?\d.*$", "", match[1]).split()[-1],
+        "locality": district.split()[-1],
+        "district": district,
     }
 
 
