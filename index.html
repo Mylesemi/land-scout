@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0b1423">
+<meta name="theme-color" content="#ffffff">
 <meta name="description" content="경기도 1억원 이하 온비드 매각 토지와 주택을 지도에서 살펴보세요.">
 <title>LAND SCOUT · 공매 토지·주택 탐색</title>
 <!-- Google Analytics 4 -->
@@ -20,51 +20,72 @@
 <script defer src="./app-data.js"></script>
 <script defer src="./app.js"></script>
 </head>
-<body>
-<header>
-  <div><span class="eyebrow">경기도 공매 탐색</span><h1><span aria-hidden="true">◈</span> LAND SCOUT</h1><p>1억원 이하 토지와 주택, 위치부터 살펴보세요.</p></div>
-  <button id="refresh" class="secondary" type="button">데이터 새로고침 <span aria-hidden="true">↻</span></button>
+<body data-view="map">
+<svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.5"/><circle cx="15" cy="17" r="2.5"/></symbol>
+  <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></symbol>
+  <symbol id="icon-map" viewBox="0 0 24 24"><path d="m9 4-6 3v14l6-3 6 3 6-3V4l-6 3-6-3Zm0 0v14m6-11v14"/></symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+  <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+</defs></svg>
+<a class="skip-link" href="#resultsHeading">매물 목록으로 이동</a>
+<header class="app-header">
+  <a class="brand" href="./" aria-label="LAND SCOUT 홈"><span class="brand-mark"><svg class="icon"><use href="#icon-pin"/></svg></span><span>LAND<span class="brand-light"> SCOUT</span><small>내 땅을 찾는 새로운 시선</small></span></a>
+  <label class="search-box"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><span class="sr-only">주소·물건번호 검색</span><input id="search" type="search" placeholder="어느 지역의 땅을 찾으세요?" autocomplete="off"><kbd aria-hidden="true">검색</kbd></label>
+  <div class="header-actions"><span class="service-label">토지·주택 공매 지도</span><button id="infoButton" class="icon-button" type="button" aria-label="데이터·이용 안내 열기" aria-controls="infoDialog"><span class="info-icon" aria-hidden="true">i</span></button></div>
 </header>
-<main>
-<section class="panel summary" aria-label="수집 현황">
-  <div class="status-line"><span id="syncStatus" role="status" aria-live="polite">공매 데이터를 불러오고 있습니다…</span><span id="updated" class="muted"></span></div>
-  <div class="stats">
-    <div><span>매각 후보</span><strong id="statLots">—</strong></div>
-    <div><span>필지 경계 확인</span><strong id="statParcels" class="teal">—</strong></div>
-    <div><span>지역 참고 위치</span><strong id="statAreas" class="amber">—</strong></div>
-    <div><span>위치 미확인</span><strong id="statUnknown">—</strong></div>
+<nav class="filter-bar" aria-label="매물 검색 조건">
+  <span class="market-label">온비드 매각 <span class="live-dot" aria-hidden="true"></span></span>
+  <div class="filter-scroll">
+    <label class="filter-select"><span class="sr-only">매물 종류</span><select id="kind"><option value="all">토지 + 주택</option><option value="토지">토지</option><option value="주택">주택</option></select></label>
+    <button id="filterButton" class="filter-pill" type="button" aria-controls="filterDialog"><span id="priceFilterLabel">1억원 이하</span><svg class="icon" aria-hidden="true"><use href="#icon-filter"/></svg></button>
+    <label class="filter-select"><span class="sr-only">위치 정보</span><select id="location"><option value="all">위치 정보 전체</option><option value="parcel">필지 경계 확인</option><option value="exact">정확한 지번 위치</option><option value="area">지역 참고 위치</option><option value="unknown">위치 미확인</option></select></label>
+    <label class="share-filter"><input id="excludeShares" type="checkbox"><span>지분 매각 제외</span></label>
+    <button id="reset" class="icon-button reset-button" type="button" aria-label="조건 초기화" title="조건 초기화"><svg class="icon" aria-hidden="true"><use href="#icon-reset"/></svg></button>
   </div>
-  <p id="parcelStatus" class="muted">필지 경계를 확인하고 있습니다.</p>
-</section>
-<section class="panel filters" aria-label="매물 검색 조건">
-  <label class="search">주소·물건번호 검색<input id="search" type="search" placeholder="예: 용인시, 임야, 물건번호" autocomplete="off"></label>
-  <label>입찰가 상한 (원)<input id="price" type="number" min="0" max="100000000" step="1000000" value="100000000" inputmode="numeric"></label>
-  <label>종류<select id="kind"><option value="all">토지 + 주택</option><option value="토지">토지</option><option value="주택">주택</option></select></label>
-  <label>위치 정보<select id="location"><option value="all">전체</option><option value="parcel">필지 경계 확인</option><option value="exact">정확한 지번 위치</option><option value="area">지역 참고 위치</option><option value="unknown">위치 미확인</option></select></label>
-  <label>정렬<select id="sort"><option value="location">위치 확인순</option><option value="price">낮은 가격순</option><option value="closing">입찰 종료순</option></select></label>
-  <label class="check"><input id="excludeShares" type="checkbox">지분 물건 제외</label>
-  <button id="reset" type="button" class="text-button">조건 초기화</button>
-</section>
-<div class="layout">
-  <section class="panel map-panel" aria-labelledby="mapHeading">
-    <div class="section-title"><div><span class="eyebrow">LOCATION</span><h2 id="mapHeading">위치 지도</h2></div><button id="fitAll" class="secondary" type="button">전체 보기</button></div>
-    <div class="legend"><span><i class="key parcel"></i>필지 경계</span><span><i class="key exact"></i>지번 위치</span><span><i class="key area"></i>지역 참고</span></div>
+  <button id="savedButton" class="saved-button" type="button" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg>관심 매물 <span id="savedCount">0</span></button>
+</nav>
+<main class="workspace">
+  <section class="results-panel" aria-labelledby="resultsHeading">
+    <div class="results-top">
+      <div class="results-kicker"><span>경기도</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg><span id="scopeLabel">전체 매물</span></div>
+      <div class="results-title"><h1 id="resultsHeading" tabindex="-1">발견한 매물 <span id="count">—</span></h1><label class="sort-select"><span class="sr-only">매물 정렬</span><select id="sort"><option value="location">위치 확인순</option><option value="price">낮은 가격순</option><option value="closing">입찰 종료순</option></select></label></div>
+      <p class="results-subtitle" id="listHint">가격과 위치를 함께 비교해 보세요.</p>
+      <div class="list-tabs" aria-label="매물 목록 범위"><button type="button" class="active" data-scope="all" aria-pressed="true">전체 <span id="allCount">—</span></button><button type="button" data-scope="mapped" aria-pressed="false">지도에 표시 <span id="mappedCount">—</span></button><button type="button" data-scope="saved" aria-pressed="false">관심 <span id="savedTabCount">0</span></button></div>
+    </div>
+    <div class="list-scroll" id="listScroll"><div id="list" aria-live="polite" aria-busy="true"><p class="empty">매물을 불러오고 있어요.</p></div><nav class="pagination" aria-label="매물 목록 페이지"><button id="previous" type="button" class="secondary">이전</button><span id="pageInfo"></span><button id="next" type="button" class="secondary">다음</button></nav><p class="list-footnote">표시 일정의 최저입찰가 기준 · 일부 수집 매물<br>면적과 지분 비율은 공식 공고에서 확인하세요.</p></div>
+    <div class="list-status"><span class="live-dot" aria-hidden="true"></span><span id="updated">데이터 확인 중</span><button id="statusButton" type="button">수집 현황 <span aria-hidden="true">↗</span></button></div>
+  </section>
+  <section class="map-panel" aria-labelledby="mapHeading">
+    <h2 id="mapHeading" class="sr-only">공매 매물 지도</h2>
     <div id="map" aria-label="공매 물건 위치 지도"></div>
-    <p id="mapNotice" class="muted" role="status">지도 준비 중…</p>
-    <p class="map-help">매물의 <b>지도에서 보기</b>를 누르면 해당 위치로 확대합니다. 노란 점선 마커는 동·리의 참고 위치입니다.</p>
-    <details class="map-details"><summary>경계·위치 정보 안내</summary><p>청록색 구획은 공식 연속지적도와 지번을 대조한 필지입니다. 지분 물건은 필지 전체 중 일부 지분을 매각하며, 여러 필지·물건은 확인된 대표 필지 경계를 표시합니다. 연속지적도는 측량 경계 확인용으로 사용할 수 없습니다.</p></details>
+    <div class="map-context"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>경기도 <b>공매 지도</b></span><span class="context-divider"></span><span id="mapCount">위치 확인 중</span></div>
+    <div class="map-tools"><button id="fitAll" type="button" title="검색 결과 전체 보기"><svg class="icon" aria-hidden="true"><use href="#icon-map"/></svg><span>전체 보기</span></button><button id="baseLocation" type="button" title="서천동 근사 기준점으로 이동"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>기준지</span></button></div>
+    <div class="map-legend"><span><i class="key parcel"></i>필지 경계</span><span><i class="key exact"></i>지번 위치</span><span><i class="key area"></i>지역 참고 포함</span><button id="legendInfo" type="button" aria-label="경계·위치 정보 안내 열기">?</button></div>
+    <p class="map-notice" id="mapNotice" role="status">지도를 준비하고 있어요.</p>
+    <div class="mobile-preview" id="mobilePreview"><span class="preview-eyebrow">지도로 먼저 둘러보세요</span><strong id="previewPrice">나에게 맞는 땅, 어디에 있을까요?</strong><span id="previewAddress">가격 마커를 누르면 매물 정보를 볼 수 있어요.</span><button id="previewOpen" type="button">매물 목록 보기 <svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></button></div>
   </section>
-  <section class="panel results-panel" aria-labelledby="resultsHeading">
-    <div class="section-title"><div><span class="eyebrow">ONBID</span><h2 id="resultsHeading">매각 후보 <span id="count" class="count"></span></h2></div></div>
-    <div id="list" aria-live="polite"><p class="empty">데이터를 불러오는 중…</p></div>
-    <nav class="pagination" aria-label="매물 목록 페이지"><button id="previous" type="button" class="secondary">이전</button><span id="pageInfo" class="muted"></span><button id="next" type="button" class="secondary">다음</button></nav>
-  </section>
-</div>
-<section class="panel notes">
-  <div><h3>차량 30분·토지 활용 조건</h3><p id="geoStatus">서천 힐스테이트 기준 실주행 시간은 아직 미확인입니다.</p><p>도로, 상하수도, 일조량, 전력계통 연계와 용도지역은 개별 확인이 필요합니다.</p></div>
-  <div><h3>입찰 전 원문 확인</h3><p>가격은 표시된 입찰 일정의 최저입찰가입니다. 지분 비율, 권리관계, 공매 공고와 입찰 조건을 온비드에서 확인하세요.</p><a href="https://www.onbid.co.kr/" target="_blank" rel="noopener noreferrer">온비드 바로가기 ↗</a></div>
-</section>
 </main>
-<footer>LAND SCOUT <span>·</span> 온비드 공식 API / 경기부동산포털·VWorld 연속지적도 / © OpenStreetMap</footer>
+<button class="view-toggle" id="viewToggle" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-list"/></svg><span id="viewToggleLabel">목록 보기</span><span id="mobileCount">—</span></button>
+<dialog id="filterDialog" class="app-dialog filter-dialog" aria-labelledby="filterTitle">
+  <div class="dialog-head"><div><span class="dialog-kicker">나에게 맞는 조건</span><h2 id="filterTitle">입찰가 설정</h2></div><button type="button" class="icon-button" data-close aria-label="입찰가 설정 닫기"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+  <p class="dialog-copy">현재 수집 범위는 1억원 이하 토지·주택입니다.</p>
+  <label class="price-field" for="price">최저입찰가 상한 <span><input id="price" type="number" min="0" max="100000000" step="1000000" value="100000000" inputmode="numeric">원</span></label>
+  <div class="price-presets"><button type="button" data-price="10000000">1천만</button><button type="button" data-price="30000000">3천만</button><button type="button" data-price="50000000">5천만</button><button type="button" data-price="100000000" class="active">1억</button></div>
+  <button id="applyPrice" type="button" class="primary-button">매물 보기</button>
+</dialog>
+<dialog id="infoDialog" class="app-dialog info-dialog" aria-labelledby="infoTitle">
+  <div class="dialog-head"><div><span class="dialog-kicker">LAND SCOUT</span><h2 id="infoTitle">데이터·이용 안내</h2></div><button type="button" class="icon-button" data-close aria-label="이용 안내 닫기"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+  <div class="info-scroll"><section class="summary" aria-label="수집 현황"><p id="syncStatus" role="status">데이터를 확인하고 있습니다.</p><div class="stats"><div><span>매각 후보</span><strong id="statLots">—</strong></div><div><span>필지 확인</span><strong id="statParcels">—</strong></div><div><span>지역 참고</span><strong id="statAreas">—</strong></div><div><span>위치 미확인</span><strong id="statUnknown">—</strong></div></div><p id="parcelStatus"></p><button id="refresh" type="button" class="secondary">데이터 새로고침 ↻</button></section>
+  <section><h3>지도는 이렇게 읽으세요</h3><p>가까운 매물은 가격 마커 하나로 묶이며, 확대하면 펼쳐집니다. 파란 마커는 지번 위치가 확인된 매물, 주황색 점선 마커는 동·리의 참고 위치를 포함한 매물입니다. 참고 위치는 실제 매물 위치를 뜻하지 않습니다.</p><p>청록색 구획은 공식 연속지적도와 지번을 대조한 필지입니다. 지분 매각은 필지 전체 중 일부 지분을 매각하며, 여러 필지는 확인된 대표 필지 경계를 표시합니다. 연속지적도는 측량 경계 확인용으로 사용할 수 없습니다.</p></section>
+  <section><h3>차량 30분·토지 활용 조건</h3><p id="geoStatus">서천 힐스테이트 기준 실주행 시간은 아직 미확인입니다.</p><p>도로, 상하수도, 일조량, 전력계통 연계와 용도지역은 개별 확인이 필요합니다.</p></section>
+  <section><h3>입찰 전 원문 확인</h3><p>가격은 표시된 입찰 일정의 최저입찰가입니다. 지분 비율, 권리관계, 공매 공고와 입찰 조건을 온비드에서 확인하세요.</p><a href="https://www.onbid.co.kr/" target="_blank" rel="noopener noreferrer">온비드 바로가기 ↗</a></section>
+  <footer>온비드 공식 API · 경기부동산포털·VWorld 연속지적도<br>지도 © OpenStreetMap contributors</footer></div>
+</dialog>
+<div id="toast" class="toast" role="status"></div>
 </body>
 </html>
