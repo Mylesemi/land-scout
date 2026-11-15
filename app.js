@@ -193,7 +193,7 @@ function render() {
     addTag(tags,lot.property_type || '종류 미확인');
     addTag(tags,locationLabel[type],type);
     if (lot.share) addTag(tags,'지분 매각','share');
-    if (lot.multiple_parcels) addTag(tags,'여러 필지 · 대표필지');
+    if (lot.multiple_parcels) addTag(tags,'여러 필지·물건 · 대표 경계');
     const number = document.createElement('span'); number.className = 'lot-number'; number.textContent = String(index+1).padStart(2,'0');
     top.append(tags,number); card.append(top);
     const title = document.createElement('h3'); title.textContent = lot.name || lot.address; card.append(title);

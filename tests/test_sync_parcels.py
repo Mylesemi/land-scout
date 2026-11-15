@@ -84,6 +84,21 @@ class ParcelTests(unittest.TestCase):
             self.assertEqual(items[0]["location_precision"],"parcel")
             self.assertEqual(items[1]["parcel_status"],"provider_error")
 
+    def test_gyeonggi_address_search_requires_full_address_match(self):
+        from unittest.mock import MagicMock
+        client=MagicMock()
+        response={"result":{"rows":[
+            {"fields":{"pnu":PNU,"jibun_nm":"경기도 다른시 당동 957-2"}},
+            {"fields":{"pnu":PNU,"jibun_nm":ADDRESS}}
+        ]}}
+        client.open.side_effect=[io.BytesIO(b"<html></html>"),io.BytesIO(json.dumps(json.dumps(response)).encode())]
+        with patch.object(parcels,"_SEARCH_CLIENT",None), patch.object(parcels.urllib.request,"build_opener",return_value=client):
+            self.assertEqual(parcels.resolve_gyeonggi_pnu(ADDRESS),PNU)
+        response["result"]["rows"]=response["result"]["rows"][:1]
+        client.open.side_effect=[io.BytesIO(b"<html></html>"),io.BytesIO(json.dumps(json.dumps(response)).encode())]
+        with patch.object(parcels,"_SEARCH_CLIENT",None), patch.object(parcels.urllib.request,"build_opener",return_value=client):
+            self.assertIsNone(parcels.resolve_gyeonggi_pnu(ADDRESS))
+
     def test_gyeonggi_reads_real_geojson_without_pagination_or_key(self):
         import urllib.parse
         response={"type":"FeatureCollection","features":[{**FEATURE,"properties":{"PNU":PNU,"JIBUN":"957-2 대"}}]}

@@ -145,7 +145,7 @@ def normalize(row):
     return {"source": "온비드", "lot_id": ident, "condition_id": str(row.get("pbctCdtnNo") or ""),
             "address": address, "min_price": price, "disposal": "매각",
             "share": str(row.get("alcYn") or "").upper() == "Y" or "지분" in name,
-            "multiple_parcels": bool(re.search(r"외\s*\d+\s*필지", name)),
+            "multiple_parcels": bool(re.search(r"외\s*\d+\s*필지|(?:동|리|가)\s+(?:산\s*)?\d+(?:-\d+)?\s*[,，]\s*(?:산\s*)?\d", name)),
             "provider_pnu": str(row.get("ltnoPnu") or "").strip() or None,
             "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type,
             "pnu": candidate_pnu(row.get("ltnoPnu"), name), "category": category.strip(), "name": name,

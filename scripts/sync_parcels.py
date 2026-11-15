@@ -7,6 +7,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import http.cookiejar
+from html.parser import HTMLParser
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -141,6 +143,67 @@ def representative_point(geometry):
             (min(p[0] for p in points) + max(p[0] for p in points)) / 2]
 
 
+_SEARCH_CLIENT = None
+_SEARCH_HEADERS = {}
+
+
+class _SearchMeta(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.values = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "meta" and attrs.get("name") in ("_csrf", "_csrf_header"):
+            self.values[attrs["name"]] = attrs.get("content", "")
+
+
+def resolve_gyeonggi_pnu(address):
+    """Use the public portal's exact address search, retaining its CSRF checks."""
+    global _SEARCH_CLIENT, _SEARCH_HEADERS
+    target = parcel_address(address)
+    if not target:
+        return None
+    try:
+        if _SEARCH_CLIENT is None:
+            client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+            with client.open("https://gris.gg.go.kr/map/main/grisMapView.do", timeout=25) as response:
+                parser = _SearchMeta()
+                parser.feed(response.read().decode("utf-8", errors="replace"))
+            headers = {"Referer": "https://gris.gg.go.kr/map/main/grisMapView.do",
+                       "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                       "X-Requested-With": "XMLHttpRequest"}
+            if parser.values.get("_csrf") and parser.values.get("_csrf_header"):
+                headers[parser.values["_csrf_header"]] = parser.values["_csrf"]
+            _SEARCH_CLIENT, _SEARCH_HEADERS = client, headers
+        word = target["address"]
+        params = {"param1": "*", "param2": "onestop.onestop", "param3": 0, "param4": 20,
+                  "param5": "UTF-8", "param6": "gris.gg.go.kr@onestop~guest$||1|제목^" + chr(36) + "{" + word + "}",
+                  "param7": "onestop", "param8": "text_idx", "param9": word}
+        request = urllib.request.Request("https://gris.gg.go.kr/srch/selectSearchList.do",
+                                         data=urllib.parse.urlencode(params).encode(), headers=_SEARCH_HEADERS)
+        with _SEARCH_CLIENT.open(request, timeout=25) as response:
+            data = json.load(response)
+        if isinstance(data, str):
+            data = json.loads(data)
+    except urllib.error.HTTPError as exc:
+        raise ProviderError("HTTP_" + str(exc.code)) from None
+    except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
+        raise ProviderError("NETWORK_ERROR") from None
+    except (ValueError, TypeError):
+        raise ProviderError("INVALID_RESPONSE") from None
+    result = data.get("result") if isinstance(data, dict) else None
+    if not isinstance(result, dict) or not isinstance(result.get("rows"), list):
+        raise ProviderError("INVALID_RESPONSE")
+    suffix = ("2" if target["mountain"] else "1") + f'{target["main"]:04d}{target["sub"]:04d}'
+    for row in result["rows"]:
+        fields = row.get("fields") or {}
+        pnu = str(fields.get("pnu") or "")
+        if valid_pnu(pnu) and pnu[10:] == suffix and same_lot(fields.get("jibun_nm"), target):
+            return pnu
+    return None
+
+
 def fetch_gyeonggi_parcel(pnu, address):
     """Public Gyeonggi cadastral query; no API key or browser session required."""
     if not valid_pnu(pnu) or not pnu.startswith("41"):
@@ -187,7 +250,7 @@ def main():
     cached = {str(f.get("properties", {}).get("pnu")): f for f in previous.get("features", [])
               if valid_pnu(f.get("properties", {}).get("pnu")) and valid_geometry(f.get("geometry"))}
     features, errors, attempts, unresolved, deferred = {}, {}, 0, 0, 0
-    failures = {"gyeonggi": 0, "vworld": 0}
+    failures = {"gyeonggi": 0, "gyeonggi_search": 0, "vworld": 0}
     resolved_addresses, attempted_parcels = {}, {}
     addresses = {(parcel_address(x.get("name")) or parcel_address(x.get("address")) or {}).get("address")
                  for x in data.get("items", [])}
@@ -217,15 +280,22 @@ def main():
             # Reuse a previously verified full-address match before any lookup.
             pnu = next((key for key, feature in cached.items()
                         if same_lot(feature.get("properties", {}).get("address"), target)), None)
-        if not pnu and KEY and failures["vworld"] < 3 and attempts < MAX_REQUESTS:
+        if not pnu:
             if address not in resolved_addresses:
-                attempts += 1
-                lookup_history[address] = datetime.now(timezone.utc).isoformat()
-                try:
-                    resolved_addresses[address] = resolve_pnu(address)
-                except ProviderError as exc:
-                    record_error("vworld", exc)
-                    resolved_addresses[address] = None
+                resolved_addresses[address] = None
+                if failures["gyeonggi_search"] < 3 and attempts < MAX_REQUESTS:
+                    attempts += 1
+                    lookup_history[address] = datetime.now(timezone.utc).isoformat()
+                    try:
+                        resolved_addresses[address] = resolve_gyeonggi_pnu(address)
+                    except ProviderError as exc:
+                        record_error("gyeonggi_search", exc)
+                if not resolved_addresses[address] and KEY and failures["vworld"] < 3 and attempts < MAX_REQUESTS:
+                    attempts += 1
+                    try:
+                        resolved_addresses[address] = resolve_pnu(address)
+                    except ProviderError as exc:
+                        record_error("vworld", exc)
             pnu = resolved_addresses[address]
         item["pnu"] = pnu
         feature = features.get(pnu) or cached.get(pnu)

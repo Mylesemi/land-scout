@@ -73,6 +73,12 @@ class CollectorTests(unittest.TestCase):
             bad = dict(row, **changes)
             self.assertIsNone(namespace["normalize"](bad))
 
+    def test_combined_parcels_are_marked_and_keep_representative_address(self):
+        row={"dspsMthodCd":"0001","cltrMngNo":"C1","onbidCltrNm":"경기도 광주시 남종면 삼성리 234, 235-2","landSqms":"100","lowstBidPrcIndctCont":"90000000","cltrUsgLclsCtgrNm":"토지","lctnSdnm":"경기도"}
+        out=namespace["normalize"](row)
+        self.assertTrue(out["multiple_parcels"])
+        self.assertEqual(out["address"],"경기도 광주시 남종면 삼성리 234")
+
     def test_price_rejects_ambiguous_values(self):
         self.assertIsNone(namespace["price_number"]("약 5천만원"))
         self.assertIsNone(namespace["price_number"]("-100"))
