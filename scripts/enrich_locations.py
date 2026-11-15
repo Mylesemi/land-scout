@@ -5,6 +5,7 @@ small batch, caching, no bulk address harvesting. No guessed map pins.
 """
 import json, os, re, time, urllib.parse, urllib.request
 from pathlib import Path
+from location_utils import parcel_address
 
 DATA = Path("data/auctions.json")
 CACHE = Path("data/geocode_cache.json")
@@ -13,8 +14,8 @@ LIMIT = 15
 
 def lot_address(name):
     # Require a complete Korean cadastral lot number, not a district centroid.
-    match = re.search(r"((?:경기도|경기)\s+.+?\s+(?:산\s*)?\d+(?:-\d+)?)(?=\s|$)", name)
-    return match.group(1) if match else None
+    lot = parcel_address(name)
+    return lot["address"] if lot else None
 
 def normalize(value):
     return re.sub(r"\s+", "", str(value or "")).replace("경기도", "경기", 1)
@@ -72,9 +73,13 @@ def main():
         return
     data = json.loads(DATA.read_text(encoding="utf-8"))
     cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
-    stats = {"geocoded": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "OpenStreetMap Nominatim"}
+    stats = {"geocoded": 0, "parcel_geocoded": 0, "exact": 0, "approximate": 0, "routed": 0, "unmatched": 0, "requests": 0, "provider": "VWorld / OpenStreetMap Nominatim"}
     area_cache = {}
     for item in data.get("items", []):
+        if item.get("parcel_status") == "verified" and item.get("location_precision") == "parcel":
+            stats["geocoded"] += 1
+            stats["parcel_geocoded"] += 1
+            continue
         item["lat"] = item["lng"] = item["drive_min"] = None
         item.pop("location_precision", None)
         item.pop("geocode_source", None)
@@ -89,24 +94,28 @@ def main():
                 continue
             if stats["requests"]:
                 time.sleep(1.2)
+            stats["requests"] += 1
             try:
                 cache[address] = geocode(address)
             except Exception as exc:
                 print("Geocoding failed:", type(exc).__name__)
                 stats["unmatched"] += 1
                 continue
-            stats["requests"] += 1
         coords = cache[address]
         if coords is None:
             area = " ".join(address.split()[:-1])
+            cache_key = "area:" + area
+            if cache_key in cache:
+                area_cache[area] = cache[cache_key]
             if area not in area_cache and stats["requests"] < LIMIT:
                 time.sleep(1.2)
+                stats["requests"] += 1
                 try:
                     area_cache[area] = area_geocode(address)
+                    cache[cache_key] = area_cache[area]
                 except Exception as exc:
                     print("Area lookup failed:", type(exc).__name__)
                     area_cache[area] = None
-                stats["requests"] += 1
             coords = area_cache.get(area)
             if coords is None:
                 stats["unmatched"] += 1
@@ -115,11 +124,13 @@ def main():
             item["lat"], item["lng"] = coords
             item["geocode_source"] = "OSM approximate locality (not property location)"
             stats["geocoded"] += 1
+            stats["approximate"] += 1
             continue
         item["lat"], item["lng"] = coords
         item["location_precision"] = "exact"
         item["geocode_source"] = "OpenStreetMap Nominatim exact lot match"
         stats["geocoded"] += 1
+        stats["exact"] += 1
     data["enrichment"] = {**stats, "geocode_configured": True, "route_configured": False}
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

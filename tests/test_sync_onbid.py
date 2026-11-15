@@ -3,12 +3,15 @@ import ast
 import json
 import unittest
 import xml.etree.ElementTree as ET
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from location_utils import candidate_pnu, parcel_address
 
 source = Path("scripts/sync_onbid.py").read_text(encoding="utf-8")
 tree = ast.parse(source)
 functions = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("parse_response", "extract", "normalize", "price_number", "area_number")]
-namespace = {"json": json, "ET": ET, "re": __import__("re"), "rejection_counts": {"missing_identifier": 0, "missing_price_or_area": 0, "not_land": 0, "not_gyeonggi": 0, "over_budget": 0}}
+namespace = {"json": json, "ET": ET, "re": __import__("re"), "candidate_pnu": candidate_pnu, "parcel_address": parcel_address, "rejection_counts": {"missing_identifier": 0, "missing_price_or_area": 0, "not_land": 0, "not_gyeonggi": 0, "over_budget": 0, "not_sale": 0}}
 exec(compile(ast.Module(body=functions, type_ignores=[]), "<collector-functions>", "exec"), namespace)
 
 class CollectorTests(unittest.TestCase):
@@ -37,26 +40,26 @@ class CollectorTests(unittest.TestCase):
         code, msg, payload, fmt = namespace["parse_response"](raw)
         self.assertEqual((code, msg, fmt), ("03", "NODATA_ERROR", "json"))
 
-    def test_decimal_area_and_first_bid(self):
-        row = {"cltrMngNo": "123", "onbidCltrNm": "대지", "landSqms": "32.75", "frstBidPrc": "45000000", "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
+    def test_decimal_area_and_current_bid(self):
+        row = {"dspsMthodCd": "0001", "cltrMngNo": "123", "onbidCltrNm": "대지", "landSqms": "32.75", "frstBidPrc": "90000000", "lowstBidPrcIndctCont": "45000000", "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
         out = namespace["normalize"](row)
         self.assertIsNotNone(out)
         self.assertEqual(out["area"], 32.75)
         self.assertEqual(out["min_price"], 45000000)
 
     def test_housing_with_building_area(self):
-        row = {"cltrMngNo":"H1","onbidCltrNm":"경기도 용인시 아파트","bldSqms":"84.92","frstBidPrc":"85000000","cltrUsgLclsCtgrNm":"부동산","cltrUsgMclsCtgrNm":"주택","lctnSdnm":"경기도","lctnSggnm":"용인시"}
+        row = {"dspsMthodCd":"0001","cltrMngNo":"H1","onbidCltrNm":"경기도 용인시 아파트","bldSqms":"84.92","lowstBidPrcIndctCont":"85000000","cltrUsgLclsCtgrNm":"부동산","cltrUsgMclsCtgrNm":"주택","lctnSdnm":"경기도","lctnSggnm":"용인시"}
         out = namespace["normalize"](row)
         self.assertIsNotNone(out)
         self.assertEqual(out["property_type"], "주택")
         self.assertEqual(out["area"], 84.92)
 
     def test_no_false_land_match_from_common_korean_syllable(self):
-        row = {"cltrMngNo":"X1","onbidCltrNm":"경기도 용인시 상가 전용시설","landSqms":"40","frstBidPrc":"30000000","cltrUsgLclsCtgrNm":"상가","lctnSdnm":"경기도","lctnSggnm":"용인시"}
+        row = {"dspsMthodCd":"0001","cltrMngNo":"X1","onbidCltrNm":"경기도 용인시 상가 전용시설","landSqms":"40","lowstBidPrcIndctCont":"30000000","cltrUsgLclsCtgrNm":"상가","lctnSdnm":"경기도","lctnSggnm":"용인시"}
         self.assertIsNone(namespace["normalize"](row))
 
     def test_verified_land(self):
-        row = {"cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
+        row = {"dspsMthodCd": "0001", "cltrMngNo": "123", "onbidCltrNm": "토지", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
                "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도", "lctnSggnm": "용인시"}
         out = namespace["normalize"](row)
         self.assertIsNotNone(out)
@@ -65,7 +68,8 @@ class CollectorTests(unittest.TestCase):
         self.assertIsNone(out["lat"])
         self.assertIsNone(out["url"])
         for changes in ({"lowstBidPrcIndctCont": "100000001"}, {"lctnSdnm": "서울특별시"},
-                        {"cltrUsgLclsCtgrNm": "건물"}, {"landSqms": ""}, {"cltrMngNo": ""}):
+                        {"cltrUsgLclsCtgrNm": "건물"}, {"landSqms": ""}, {"cltrMngNo": ""},
+                        {"dspsMthodCd": "0002"}, {"dspsMthodCd": ""}, {"lowstBidPrcIndctCont": "비공개", "frstBidPrc": "90000000"}):
             bad = dict(row, **changes)
             self.assertIsNone(namespace["normalize"](bad))
 

@@ -1,73 +1,208 @@
-"""Fetch cadastral parcel geometries only when an authorized VWorld API key is configured.
-
-Never fabricate a polygon or treat locality centroids as cadastral boundaries.
-"""
-import json, os, re, time, urllib.error, urllib.parse, urllib.request
+"""Resolve and verify cadastral polygons without exposing the VWorld key."""
+import json
+import math
+import os
+import re
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
+
+from location_utils import candidate_pnu, parcel_address, valid_pnu
 
 INPUT = Path("data/auctions.json")
 OUTPUT = Path("data/parcels.geojson")
 KEY = os.getenv("VWORLD_API_KEY", "").strip()
-BASE = "https://api.vworld.kr/req/data"
+DOMAIN = os.getenv("VWORLD_API_DOMAIN", "").strip() or "https://mylesemi.github.io"
+BASE = "https://api.vworld.kr"
 
-def fetch_parcel(pnu):
-    params = {"service": "data", "request": "GetFeature", "data": "LP_PA_CBND_BUBUN",
-              "key": KEY, "domain": (os.getenv("VWORLD_API_DOMAIN") or "localhost"),
-              "format": "json", "size": 1, "attrFilter": "pnu:equal:" + pnu,
-              "geometry": "true", "crs": "EPSG:4326"}
-    url = BASE + "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": "LAND-SCOUT/1.0"})
+
+class ProviderError(Exception):
+    pass
+
+
+def request_json(path, params):
+    params = {**params, "key": KEY, "domain": DOMAIN, "format": "json", "version": "2.0"}
+    req = urllib.request.Request(
+        BASE + path + "?" + urllib.parse.urlencode(params),
+        headers={"User-Agent": "LAND-SCOUT/1.0", "Referer": DOMAIN if "://" in DOMAIN else "https://" + DOMAIN},
+    )
     for attempt in range(3):
         try:
             with urllib.request.urlopen(req, timeout=25) as result:
                 data = json.load(result)
             break
-        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as exc:
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                raise ProviderError("HTTP_" + str(exc.code)) from None
+        except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
             if attempt == 2:
-                raise
-            time.sleep((2, 5)[attempt])
-    response = data.get("response") or {}
+                raise ProviderError("NETWORK_ERROR") from None
+        except (ValueError, TypeError):
+            raise ProviderError("INVALID_RESPONSE") from None
+        time.sleep((2, 5)[attempt])
+    response = data.get("response") if isinstance(data, dict) else None
+    if not isinstance(response, dict):
+        raise ProviderError("INVALID_RESPONSE")
+    if response.get("status") == "NOT_FOUND":
+        return {}
     if response.get("status") != "OK":
-        err = response.get("error") or {}
-        print("VWorld lookup unavailable:", str(err.get("code") or response.get("status")), str(err.get("text") or "")[:160])
+        code = str((response.get("error") or {}).get("code") or "API_ERROR")
+        # Never print provider text or exception URLs: they can contain the key.
+        raise ProviderError(code if re.fullmatch(r"[A-Z0-9_]{1,60}", code) else "API_ERROR")
+    return response.get("result") or {}
+
+
+def same_lot(address, target):
+    actual = parcel_address(address)
+    def compact(value):
+        return re.sub(r"\s+", "", value).replace("경기도", "경기", 1)
+    return bool(actual and target and compact(actual["address"]) == compact(target["address"]))
+
+
+def resolve_pnu(address):
+    """Search the complete parcel address when Onbid's identifier disagrees."""
+    target = parcel_address(address)
+    if not target:
         return None
-    features = ((response.get("result") or {}).get("featureCollection") or {}).get("features") or []
-    for feature in features:
-        props = feature.get("properties") or {}
-        geom = feature.get("geometry") or {}
-        if str(props.get("pnu") or props.get("PNU") or "") == pnu and geom.get("type") in ("Polygon", "MultiPolygon"):
-            return {"type": "Feature", "properties": {"pnu": pnu, "source": "VWorld cadastral parcel"},
-                    "geometry": geom}
+    result = request_json("/req/search", {
+        "service": "search", "request": "search", "query": target["address"],
+        "type": "ADDRESS", "category": "parcel", "size": 5, "page": 1, "crs": "EPSG:4326",
+    })
+    for item in result.get("items") or []:
+        pnu = str(item.get("id") or "")
+        if valid_pnu(pnu) and same_lot((item.get("address") or {}).get("parcel"), target):
+            suffix = ("2" if target["mountain"] else "1") + f'{target["main"]:04d}{target["sub"]:04d}'
+            if pnu[10:] == suffix:
+                return pnu
     return None
+
+
+def valid_geometry(geometry):
+    if not isinstance(geometry, dict) or geometry.get("type") not in ("Polygon", "MultiPolygon"):
+        return False
+    polygons = [geometry.get("coordinates")] if geometry["type"] == "Polygon" else geometry.get("coordinates")
+    if not isinstance(polygons, list) or not polygons:
+        return False
+    for polygon in polygons:
+        if not isinstance(polygon, list) or not polygon:
+            return False
+        for ring in polygon:
+            if not isinstance(ring, list) or len(ring) < 4 or ring[0] != ring[-1]:
+                return False
+            for point in ring:
+                if not isinstance(point, list) or len(point) < 2:
+                    return False
+                if any(isinstance(n, bool) or not isinstance(n, (int, float)) or not math.isfinite(n) for n in point[:2]):
+                    return False
+                if not (124 <= point[0] <= 132 and 33 <= point[1] <= 39.5):
+                    return False
+            if len({tuple(p[:2]) for p in ring}) < 3:
+                return False
+    return True
+
+
+def verified_feature(feature, pnu, address):
+    props = feature.get("properties") or {}
+    if str(props.get("pnu") or props.get("PNU") or "") != pnu or not valid_geometry(feature.get("geometry")):
+        return None
+    supplied_address = props.get("addr") or props.get("address")
+    if supplied_address and not same_lot(supplied_address, parcel_address(address)):
+        return None
+    return {
+        "type": "Feature",
+        "properties": {"pnu": pnu, "address": address, "source": "VWorld 연속지적도",
+                       "verified_at": datetime.now(timezone.utc).isoformat()},
+        "geometry": feature["geometry"],
+    }
+
+
+def fetch_parcel(pnu, address):
+    result = request_json("/req/data", {
+        "service": "data", "request": "GetFeature", "data": "LP_PA_CBND_BUBUN",
+        "size": 1, "page": 1, "attrFilter": "pnu:=:" + pnu,
+        "geometry": "true", "attribute": "true", "crs": "EPSG:4326",
+    })
+    for feature in (result.get("featureCollection") or {}).get("features") or []:
+        verified = verified_feature(feature, pnu, address)
+        if verified:
+            return verified
+    return None
+
+
+def representative_point(geometry):
+    polygons = [geometry["coordinates"]] if geometry["type"] == "Polygon" else geometry["coordinates"]
+    points = [point for polygon in polygons for point in polygon[0]]
+    # A display reference for a verified polygon, not a road entrance.
+    return [(min(p[1] for p in points) + max(p[1] for p in points)) / 2,
+            (min(p[0] for p in points) + max(p[0] for p in points)) / 2]
+
 
 def main():
     data = json.loads(INPUT.read_text(encoding="utf-8"))
-    pnus = sorted({str(item.get("pnu")) for item in data.get("items", [])
-                   if re.fullmatch(r"\d{19}", str(item.get("pnu") or ""))})
-    existing = {}
-    if OUTPUT.exists():
-        previous = json.loads(OUTPUT.read_text(encoding="utf-8"))
-        existing = {f["properties"]["pnu"]: f for f in previous.get("features", [])
-                    if f.get("properties", {}).get("pnu") in pnus and f.get("geometry", {}).get("type") in ("Polygon", "MultiPolygon")}
-    if KEY:
-        for pnu in pnus:
-            if pnu in existing:
-                continue
-            try:
-                feature = fetch_parcel(pnu)
-                if feature:
-                    existing[pnu] = feature
-            except urllib.error.HTTPError as exc:
-                print("Parcel HTTP failure for", pnu, "status", exc.code)
-            except Exception as exc:
-                print("Parcel request failed for", pnu, type(exc).__name__)
-    else:
-        print("VWORLD_API_KEY absent: no new cadastral boundaries; existing verified boundaries retained")
-    output = {"type": "FeatureCollection", "features": list(existing.values())}
+    previous = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    cached = {str(f.get("properties", {}).get("pnu")): f for f in previous.get("features", [])
+              if valid_pnu(f.get("properties", {}).get("pnu")) and valid_geometry(f.get("geometry"))}
+    features, errors, attempts, unresolved, failures = {}, {}, 0, 0, 0
+    resolved_addresses = {}
+    for item in data.get("items", []):
+        address = parcel_address(item.get("name")) or parcel_address(item.get("address"))
+        if not address:
+            item["pnu"] = None
+            unresolved += 1
+            continue
+        address = address["address"]
+        raw = item.get("provider_pnu") or item.get("pnu")
+        item["provider_pnu"] = raw
+        pnu = candidate_pnu(raw, address)
+        try:
+            if not pnu and KEY and failures < 3:
+                if address not in resolved_addresses:
+                    attempts += 1
+                    resolved_addresses[address] = resolve_pnu(address)
+                pnu = resolved_addresses[address]
+            item["pnu"] = pnu
+            feature = features.get(pnu) or cached.get(pnu)
+            if feature and not same_lot(feature.get("properties", {}).get("address"), parcel_address(address)):
+                feature = None
+            if not feature and KEY and pnu and failures < 3:
+                attempts += 1
+                feature = fetch_parcel(pnu, address)
+            if feature:
+                features[pnu] = feature
+                item["lat"], item["lng"] = representative_point(feature["geometry"])
+                item["location_precision"] = "parcel"
+                item["geocode_source"] = "VWorld verified cadastral boundary"
+                item["parcel_status"] = "verified"
+            else:
+                item["parcel_status"] = "unavailable" if failures else "not_found" if KEY else "not_configured"
+                unresolved += 1
+        except ProviderError as exc:
+            code = str(exc)
+            errors[code] = errors.get(code, 0) + 1
+            failures += 1
+            item["pnu"] = pnu
+            item["parcel_status"] = "provider_error"
+            unresolved += 1
+            print("VWorld request unavailable:", code, flush=True)
+            if code.startswith(("INVALID_KEY", "UNREGISTERED", "INVALID_DOMAIN", "INCORRECT_KEY")):
+                failures = 3
+    report = {
+        "status": "not_configured" if not KEY else "partial" if errors and features else
+                  "provider_error" if errors else "complete",
+        "checked_at": datetime.now(timezone.utc).isoformat(), "key_configured": bool(KEY),
+        "verified_parcels": len(features), "verified_items": sum(x.get("parcel_status") == "verified" for x in data.get("items", [])),
+        "unresolved_items": unresolved, "requests": attempts, "errors": errors,
+    }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print("VWorld key configured:", bool(KEY))
-    print("Cadastral boundaries:", len(existing), "of", len(pnus), "PNU identifiers")
+    OUTPUT.write_text(json.dumps({"type": "FeatureCollection", "features": list(features.values()), "sync": report},
+                                 ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    data["parcels"] = report
+    INPUT.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("Cadastral boundary sync:", json.dumps(report, ensure_ascii=False), flush=True)
+
 
 if __name__ == "__main__":
     main()

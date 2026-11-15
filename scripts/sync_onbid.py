@@ -3,6 +3,7 @@ import json, os, re, sys, time, urllib.parse, urllib.request, urllib.error
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+from location_utils import candidate_pnu, parcel_address
 
 BASE = "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2"
 DEST = Path("data/auctions.json")
@@ -48,7 +49,8 @@ def extract(payload, fmt):
 
 def request(prpt, pvct, page):
     params = {"serviceKey": key, "pageNo": str(page), "numOfRows": "100",
-              "prptDivCd": prpt, "pvctTrgtYn": pvct}
+              "prptDivCd": prpt, "pvctTrgtYn": pvct, "resultType": "json",
+              "dspsMthodCd": "0001", "lctnSdnm": "경기도", "lowstBidPrcEnd": "100000000"}
     url = endpoint + ("&" if "?" in endpoint else "?") + urllib.parse.urlencode(params)
     try:
         for attempt in range(3):
@@ -56,19 +58,18 @@ def request(prpt, pvct, page):
                 with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json, application/xml"}), timeout=30) as resp:
                     raw = resp.read(3_000_000)
                 break
-            except (urllib.error.URLError, TimeoutError) as exc:
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:
+                    raise
+                retry_after = str(exc.headers.get("Retry-After", ""))
+                delay = min(int(retry_after), 60) if retry_after.isdigit() else (5, 15)[attempt]
+                print(f"Onbid HTTP {exc.code}; retrying after {delay}s", flush=True)
+                time.sleep(delay)
+            except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as exc:
                 if attempt == 2:
                     raise
                 delay = (2, 5)[attempt]
                 print(f"Onbid transient network error {type(exc).__name__}; retrying after {delay}s", flush=True)
-                time.sleep(delay)
-            except urllib.error.HTTPError as exc:
-                if exc.code != 429 or attempt == 2:
-                    if exc.code == 429:
-                        print("HTTP 429 response headers: retry-after=" + str(exc.headers.get("Retry-After", "absent")) + ", rate-limit-remaining=" + str(exc.headers.get("X-RateLimit-Remaining", "absent")), flush=True)
-                    raise
-                delay = (20, 60)[attempt]
-                print(f"Onbid rate limited (HTTP 429); retrying after {delay}s", flush=True)
                 time.sleep(delay)
     except urllib.error.HTTPError as exc:
         if exc.code == 429:
@@ -97,11 +98,15 @@ def normalize(row):
         return None
     ident = str(row.get("cltrMngNo") or "").strip()
     name = str(row.get("onbidCltrNm") or "").strip()
+    sale_code = str(row.get("dspsMthodCd") or "").strip()
+    sale_name = str(row.get("dspsMthodNm") or "").strip()
+    if sale_code != "0001" and not (not sale_code and sale_name == "매각"):
+        rejection_counts["not_sale"] += 1
+        return None
     land_area = area_number(row.get("landSqms") or row.get("sqmsCont"))
     building_area = area_number(row.get("bldSqms"))
-    price = price_number(row.get("frstBidPrc")) or price_number(row.get("frstCtrsLowstBidPrc"))
-    if price is None:
-        price = price_number(row.get("lowstBidPrcIndctCont"))
+    # frstBidPrc is an INITIAL estimate, not the current auction price.
+    price = price_number(row.get("lowstBidPrcIndctCont"))
     if not ident:
         rejection_counts["missing_identifier"] += 1
         return None
@@ -115,7 +120,7 @@ def normalize(row):
     label = category.strip() or name
     if any(t in label for t in housing_terms):
         property_type = "주택"
-    elif any(t in label for t in land_terms) or re.search(r"(?:^|\\s)(?:전|답)(?:$|\\s)", label):
+    elif any(t in label for t in land_terms) or re.search(r"(?:^|\s)(?:전|답)(?:$|\s)", label):
         property_type = "토지"
     else:
         rejection_counts["not_land"] += 1
@@ -133,20 +138,26 @@ def normalize(row):
     if price > 100_000_000:
         rejection_counts["over_budget"] += 1
         return None
-    address = str(row.get("zadrNm") or "").strip() or " ".join(str(row.get(k) or "").strip() for k in ("lctnSdnm", "lctnSggnm", "lctnEmdNm")).strip()
+    named_lot = parcel_address(name)
+    address = named_lot["address"] if named_lot else (str(row.get("zadrNm") or "").strip() or " ".join(str(row.get(k) or "").strip() for k in ("lctnSdnm", "lctnSggnm", "lctnEmdNm")).strip())
     if not address:
         return None
-    return {"source": "온비드", "lot_id": ident, "address": address, "min_price": price,
-            "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type, "pnu": (str(row.get("ltnoPnu") or "").strip() if re.fullmatch(r"\d{19}", str(row.get("ltnoPnu") or "").strip()) else None), "category": category.strip(), "name": name,
+    return {"source": "온비드", "lot_id": ident, "condition_id": str(row.get("pbctCdtnNo") or ""),
+            "address": address, "min_price": price, "disposal": "매각",
+            "share": str(row.get("alcYn") or "").upper() == "Y" or "지분" in name,
+            "multiple_parcels": bool(re.search(r"외\s*\d+\s*필지", name)),
+            "provider_pnu": str(row.get("ltnoPnu") or "").strip() or None,
+            "area": area, "land_area": land_area, "building_area": building_area, "property_type": property_type,
+            "pnu": candidate_pnu(row.get("ltnoPnu"), name), "category": category.strip(), "name": name,
             "bid_start": row.get("cltrBidBgngDt"), "bid_end": row.get("cltrBidEndDt"),
             "status": row.get("pbctStatNm"), "drive_min": None, "lat": None, "lng": None,
             "road": None, "water": None, "sewer": None, "grid": None,
             "sunlight": None, "legal": None, "url": (row.get("urlAdr") if str(row.get("urlAdr") or "").startswith("https://") else None)}
 
-# Codes are not assumed to have a particular meaning; query a small range and
-# use the provider's returned descriptive fields for selection.
-codes = [x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0002,0004,0005,0007").split(",") if re.fullmatch(r"\d{4}", x.strip())]
-max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "1")), 1), 20)
+# The official operation supports comma-separated property codes. Apply the
+# region, sale and budget constraints server-side before paginating.
+codes = [",".join(x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0007,0010,0005,0002,0003,0006,0008,0011,0013").split(",") if re.fullmatch(r"\d{4}", x.strip()))]
+max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "4")), 1), 20)
 request_budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "8")), 1), 100)
 requests_used = 0
 records = {}
@@ -155,7 +166,7 @@ successful = 0
 incomplete = False
 throttle_hit = False
 seen_field_sets = set()
-rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":0,"not_gyeonggi":0,"over_budget":0}
+rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":0,"not_gyeonggi":0,"over_budget":0,"not_sale":0}
 for code in codes:
     for pvct in ("N", "Y"):
         for page in range(1, max_pages + 1):
@@ -193,7 +204,7 @@ for code in codes:
             for item in items:
                 row = normalize(item)
                 if row:
-                    records[row["lot_id"]] = row
+                    records[row["lot_id"] + ":" + row["condition_id"]] = row
             if len(items) < 100:
                 break
             if page == max_pages and len(items) == 100:
@@ -207,12 +218,9 @@ print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=Fals
 print("Matched property types:", json.dumps({"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, ensure_ascii=False))
 if incomplete:
     print("Collection is partial due to pagination/request budget or provider throttling; only confirmed matching items will be published.")
-if not had_items:
+if not had_items and successful:
     print("No recognizable API items; existing snapshot preserved. Verify API quota and key status.", file=sys.stderr)
     sys.exit(2)
-if not records:
-    print("API returned items, but no eligible Gyeonggi land rows. Existing snapshot preserved; this is not an API failure.")
-    sys.exit(0)
 DEST.parent.mkdir(parents=True, exist_ok=True)
 snapshot = {"collection": {"requests": requests_used, "successful_pages": successful, "partial": incomplete, "matched_by_type": {"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, "rejected": rejection_counts}, "updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
             "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
