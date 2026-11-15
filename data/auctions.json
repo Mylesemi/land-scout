@@ -16,7 +16,7 @@
       "not_sale": 0
     }
   },
-  "updated": "2026-11-15T06:02:41.600565+00:00",
+  "updated": "2026-11-15T06:47:09.430120+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -3265,8 +3265,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8014299,
+      "lng": 127.3348001,
       "road": null,
       "water": null,
       "sewer": null,
@@ -3274,7 +3274,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -5951,8 +5953,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8014299,
+      "lng": 127.3348001,
       "road": null,
       "water": null,
       "sewer": null,
@@ -5960,7 +5962,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -9407,8 +9411,8 @@
       "bid_end": "202702031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.8014299,
+      "lng": 127.3348001,
       "road": null,
       "water": null,
       "sewer": null,
@@ -9416,7 +9420,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -16671,7 +16677,7 @@
   ],
   "parcels": {
     "status": "partial",
-    "checked_at": "2026-11-15T06:05:45.045305+00:00",
+    "checked_at": "2026-11-15T06:50:10.917660+00:00",
     "key_configured": true,
     "primary_provider": "경기부동산포털",
     "verified_parcels": 52,
@@ -16685,12 +16691,12 @@
     }
   },
   "enrichment": {
-    "geocoded": 228,
+    "geocoded": 231,
     "parcel_geocoded": 162,
     "exact": 0,
-    "approximate": 66,
+    "approximate": 69,
     "routed": 0,
-    "unmatched": 278,
+    "unmatched": 275,
     "requests": 15,
     "provider": "경기부동산포털 / VWorld / OpenStreetMap Nominatim",
     "geocode_configured": true,
