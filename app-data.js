@@ -1,9 +1,55 @@
 (function(root) {
   'use strict';
+  const DAY=86400000;
+  const KST=9*3600000;
   function bidTimestamp(value) {
     const text=String(value || '');
     if (!/^\d{12}(?:\d{2})?$/.test(text)) return NaN;
-    return Date.parse(text.slice(0,4)+'-'+text.slice(4,6)+'-'+text.slice(6,8)+'T'+text.slice(8,10)+':'+text.slice(10,12)+':00+09:00');
+    const [year,month,day,hour,minute,second]=[text.slice(0,4),text.slice(4,6),text.slice(6,8),text.slice(8,10),text.slice(10,12),text.slice(12,14) || '0'].map(Number);
+    const time=Date.UTC(year,month-1,day,hour,minute,second);
+    const date=new Date(time);
+    // Date.UTC normalizes impossible dates; reject them rather than shifting a bid.
+    if (date.getUTCFullYear()!==year || date.getUTCMonth()!==month-1 || date.getUTCDate()!==day || date.getUTCHours()!==hour || date.getUTCMinutes()!==minute || date.getUTCSeconds()!==second) return NaN;
+    return time-KST;
+  }
+  function kstDate(now=Date.now()) {
+    return new Date(now+KST).toISOString().slice(0,10);
+  }
+  function dateTimestamp(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? bidTimestamp(value.replaceAll('-','')+'0000') : NaN;
+  }
+  function validScheduleRange(from='',to='') {
+    return (!from || Number.isFinite(dateTimestamp(from))) && (!to || Number.isFinite(dateTimestamp(to))) && (!from || !to || from<=to);
+  }
+  function bidPhase(lot,now=Date.now()) {
+    if (/수의/.test(lot.status || '')) return 'private';
+    if (/취소|중지|매각완료|낙찰|유찰/.test(lot.status || '')) return 'ended';
+    const start=bidTimestamp(lot.bid_start),end=bidTimestamp(lot.bid_end);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start>end) return 'unknown';
+    if (now<start) return 'upcoming';
+    return now<=end ? 'active' : 'ended';
+  }
+  function matchesSchedule(lot,{phase='all',basis='end',from='',to=''}={},now=Date.now()) {
+    const state=bidPhase(lot,now);
+    if (phase!=='all' && phase!==state) return false;
+    if (!validScheduleRange(from,to)) return false;
+    if (!from && !to) return true;
+    // A private contract's old auction dates do not establish a current deadline.
+    if (state==='private' || state==='unknown') return false;
+    const time=bidTimestamp(basis==='start' ? lot.bid_start : lot.bid_end);
+    return Number.isFinite(time) && (!from || time>=dateTimestamp(from)) && (!to || time<dateTimestamp(to)+DAY);
+  }
+  function filterLotsBySchedule(lots,filters={},now=Date.now()) {
+    if ((!filters.phase || filters.phase==='all') && !filters.from && !filters.to) return lots;
+    return lots.flatMap(lot=>{
+      const rounds=Array.isArray(lot.rounds) && lot.rounds.length ? lot.rounds : [lot];
+      const matching=rounds.filter(round=>matchesSchedule(round,filters,now));
+      if (!matching.length) return [];
+      const chosen=groupLots(matching,now)[0];
+      const location={};
+      ['pnu','lat','lng','location_precision'].forEach(field=>{if (lot[field]!=null) location[field]=lot[field];});
+      return [{...chosen,...location,rounds,matching_round_count:matching.length}];
+    });
   }
   function groupLots(items, now=Date.now()) {
     const groups=new Map();
@@ -24,7 +70,7 @@
       return {...chosen,...(located?{pnu:located.pnu,lat:located.lat,lng:located.lng,location_precision:located.location_precision}:{}),rounds:eligible};
     });
   }
-  const api={bidTimestamp,groupLots};
+  const api={bidTimestamp,groupLots,kstDate,validScheduleRange,bidPhase,matchesSchedule,filterLotsBySchedule};
   if (typeof module!=='undefined' && module.exports) module.exports=api;
   else root.LandScoutData=api;
 })(typeof window==='undefined'?globalThis:window);
