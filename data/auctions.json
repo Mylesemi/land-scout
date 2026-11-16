@@ -16,7 +16,7 @@
       "not_sale": 0
     }
   },
-  "updated": "2026-11-15T06:47:09.430120+00:00",
+  "updated": "2026-11-16T04:01:08.437619+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -3927,8 +3927,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 38.0688817,
+      "lng": 126.9819498,
       "road": null,
       "water": null,
       "sewer": null,
@@ -3936,7 +3936,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4025,8 +4027,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 38.0296617,
+      "lng": 126.9160003,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4034,7 +4036,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4057,8 +4061,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.43068,
+      "lng": 127.13358,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4066,7 +4070,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4089,8 +4095,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.43068,
+      "lng": 127.13358,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4098,7 +4104,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -4623,8 +4631,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 36.93917,
+      "lng": 127.23891,
       "road": null,
       "water": null,
       "sewer": null,
@@ -4632,7 +4640,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -5027,8 +5037,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6800371,
+      "lng": 127.2335488,
       "road": null,
       "water": null,
       "sewer": null,
@@ -5036,7 +5046,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -5127,8 +5139,8 @@
       "bid_end": "202703031700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.249596,
+      "lng": 126.582593,
       "road": null,
       "water": null,
       "sewer": null,
@@ -5136,7 +5148,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6679,8 +6693,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 38.0688817,
+      "lng": 126.9819498,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6688,7 +6702,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6809,8 +6825,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 38.0296617,
+      "lng": 126.9160003,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6818,7 +6834,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6841,8 +6859,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.43068,
+      "lng": 127.13358,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6850,7 +6868,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -6873,8 +6893,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.43068,
+      "lng": 127.13358,
       "road": null,
       "water": null,
       "sewer": null,
@@ -6882,7 +6902,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -7407,8 +7429,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 36.93917,
+      "lng": 127.23891,
       "road": null,
       "water": null,
       "sewer": null,
@@ -7416,7 +7438,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -7841,8 +7865,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.6800371,
+      "lng": 127.2335488,
       "road": null,
       "water": null,
       "sewer": null,
@@ -7850,7 +7874,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -7975,8 +8001,8 @@
       "bid_end": "202702171700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.249596,
+      "lng": 126.582593,
       "road": null,
       "water": null,
       "sewer": null,
@@ -7984,7 +8010,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -9130,40 +9158,6 @@
     },
     {
       "source": "온비드",
-      "lot_id": "2024-03213-001",
-      "condition_id": "6224591",
-      "address": "경기도 파주시 문산읍 당동리 173-1",
-      "min_price": 727000,
-      "disposal": "매각",
-      "share": true,
-      "multiple_parcels": false,
-      "provider_pnu": "4148025022001730001",
-      "area": 530.0003,
-      "land_area": 530.0003,
-      "building_area": null,
-      "property_type": "토지",
-      "pnu": "4148025022101730001",
-      "category": "부동산 토지 임야",
-      "name": "경기도 파주시 문산읍 당동리 173-1",
-      "bid_start": "202702011400",
-      "bid_end": "202702031700",
-      "status": "입찰준비중",
-      "drive_min": null,
-      "lat": 37.86500640782257,
-      "lng": 126.772857085163,
-      "road": null,
-      "water": null,
-      "sewer": null,
-      "grid": null,
-      "sunlight": null,
-      "legal": null,
-      "url": null,
-      "location_precision": "parcel",
-      "geocode_source": "경기부동산포털 연속지적도",
-      "parcel_status": "verified"
-    },
-    {
-      "source": "온비드",
       "lot_id": "2024-07707-001",
       "condition_id": "6242332",
       "address": "경기도 의왕시 월암동 345-2",
@@ -10047,6 +10041,38 @@
       "location_precision": "parcel",
       "geocode_source": "경기부동산포털 연속지적도",
       "parcel_status": "verified"
+    },
+    {
+      "source": "온비드",
+      "lot_id": "2026-01982-001",
+      "condition_id": "6241454",
+      "address": "경기도 파주시 문산읍 선유리 309-11",
+      "min_price": 21024000,
+      "disposal": "매각",
+      "share": false,
+      "multiple_parcels": false,
+      "provider_pnu": "4148025023003090011",
+      "area": 141.0,
+      "land_area": 141.0,
+      "building_area": null,
+      "property_type": "토지",
+      "pnu": "4148025023103090011",
+      "category": "부동산 토지 대지",
+      "name": "경기도 파주시 문산읍 선유리 309-11",
+      "bid_start": "202702011400",
+      "bid_end": "202702031700",
+      "status": "입찰준비중",
+      "drive_min": null,
+      "lat": null,
+      "lng": null,
+      "road": null,
+      "water": null,
+      "sewer": null,
+      "grid": null,
+      "sunlight": null,
+      "legal": null,
+      "url": null,
+      "parcel_status": "provider_error"
     },
     {
       "source": "온비드",
@@ -16677,12 +16703,12 @@
   ],
   "parcels": {
     "status": "partial",
-    "checked_at": "2026-11-15T06:50:10.917660+00:00",
+    "checked_at": "2026-11-16T04:04:10.873535+00:00",
     "key_configured": true,
     "primary_provider": "경기부동산포털",
-    "verified_parcels": 52,
-    "verified_items": 162,
-    "unresolved_items": 344,
+    "verified_parcels": 51,
+    "verified_items": 161,
+    "unresolved_items": 345,
     "requests": 81,
     "deferred_items": 0,
     "errors": {
@@ -16691,12 +16717,12 @@
     }
   },
   "enrichment": {
-    "geocoded": 231,
-    "parcel_geocoded": 162,
+    "geocoded": 244,
+    "parcel_geocoded": 161,
     "exact": 0,
-    "approximate": 69,
+    "approximate": 83,
     "routed": 0,
-    "unmatched": 275,
+    "unmatched": 262,
     "requests": 15,
     "provider": "경기부동산포털 / VWorld / OpenStreetMap Nominatim",
     "geocode_configured": true,
