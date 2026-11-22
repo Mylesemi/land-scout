@@ -16,7 +16,7 @@
       "not_sale": 0
     }
   },
-  "updated": "2026-11-21T07:23:34.910976+00:00",
+  "updated": "2026-11-22T07:04:02.573722+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -15479,8 +15479,8 @@
       "bid_end": "202606151700",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 38.00522,
+      "lng": 126.95597,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15488,7 +15488,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15611,8 +15613,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15620,7 +15622,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15643,8 +15647,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15652,7 +15656,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15675,8 +15681,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15684,7 +15690,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15707,8 +15715,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15716,7 +15724,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15739,8 +15749,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15748,7 +15758,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15771,8 +15783,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15780,7 +15792,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15803,8 +15817,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15812,7 +15826,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -15835,8 +15851,8 @@
       "bid_end": "202606111800",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.16844,
+      "lng": 127.06246,
       "road": null,
       "water": null,
       "sewer": null,
@@ -15844,7 +15860,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -16219,8 +16237,8 @@
       "bid_end": "202606101600",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.3977401,
+      "lng": 126.8351279,
       "road": null,
       "water": null,
       "sewer": null,
@@ -16228,7 +16246,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -16251,8 +16271,8 @@
       "bid_end": "202606081600",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.700611,
+      "lng": 126.8247984,
       "road": null,
       "water": null,
       "sewer": null,
@@ -16260,7 +16280,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -16283,8 +16305,8 @@
       "bid_end": "202606081200",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.700611,
+      "lng": 126.8247984,
       "road": null,
       "water": null,
       "sewer": null,
@@ -16292,7 +16314,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -16315,8 +16339,8 @@
       "bid_end": "202606041600",
       "status": "수의계약가능",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.26934,
+      "lng": 127.15795,
       "road": null,
       "water": null,
       "sewer": null,
@@ -16324,7 +16348,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -17035,7 +17061,7 @@
   ],
   "parcels": {
     "status": "partial",
-    "checked_at": "2026-11-21T07:26:34.018900+00:00",
+    "checked_at": "2026-11-22T07:07:03.584604+00:00",
     "key_configured": true,
     "primary_provider": "경기부동산포털",
     "verified_parcels": 66,
@@ -17044,17 +17070,17 @@
     "requests": 77,
     "deferred_items": 0,
     "errors": {
-      "VWORLD_HTTP_502": 3,
-      "GYEONGGI_SEARCH_NETWORK_ERROR": 3
+      "GYEONGGI_SEARCH_NETWORK_ERROR": 3,
+      "VWORLD_HTTP_502": 3
     }
   },
   "enrichment": {
-    "geocoded": 378,
+    "geocoded": 391,
     "parcel_geocoded": 227,
     "exact": 0,
-    "approximate": 151,
+    "approximate": 164,
     "routed": 0,
-    "unmatched": 130,
+    "unmatched": 117,
     "requests": 15,
     "provider": "경기부동산포털 / VWorld / OpenStreetMap Nominatim",
     "geocode_configured": true,
