@@ -15,10 +15,10 @@
   gtag('config', 'G-CVFCN7ZP28');
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./styles.css?v=20261128">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script defer src="./app-data.js"></script>
-<script defer src="./app.js"></script>
+<script defer src="./app-data.js?v=20261128"></script>
+<script defer src="./app.js?v=20261128"></script>
 </head>
 <body data-view="map">
 <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -57,6 +57,7 @@
       <div class="results-kicker"><span>경기도</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg><span id="scopeLabel">전체 매물</span></div>
       <div class="results-title"><h1 id="resultsHeading" tabindex="-1">발견한 매물 <span id="count">—</span></h1><label class="sort-select"><span class="sr-only">매물 정렬</span><select id="sort"><option value="location">위치 확인순</option><option value="price">낮은 가격순</option><option value="closing">입찰 종료순</option></select></label></div>
       <p class="results-subtitle" id="listHint">가격과 위치를 함께 비교해 보세요.</p>
+      <button class="list-area-clear" type="button" data-clear-area hidden>지도 범위 해제 <svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
       <div class="list-tabs" aria-label="매물 목록 범위"><button type="button" class="active" data-scope="all" aria-pressed="true">전체 <span id="allCount">—</span></button><button type="button" data-scope="mapped" aria-pressed="false">지도에 표시 <span id="mappedCount">—</span></button><button type="button" data-scope="saved" aria-pressed="false">관심 <span id="savedTabCount">0</span></button></div>
     </div>
     <div class="list-scroll" id="listScroll"><div id="list" aria-live="polite" aria-busy="true"><p class="empty">매물을 불러오고 있어요.</p></div><nav class="pagination" aria-label="매물 목록 페이지"><button id="previous" type="button" class="secondary">이전</button><span id="pageInfo"></span><button id="next" type="button" class="secondary">다음</button></nav><p class="list-footnote">표시 일정의 최저입찰가 기준 · 일부 수집 매물<br>면적과 지분 비율은 공식 공고에서 확인하세요.</p></div>
@@ -67,9 +68,11 @@
     <div id="map" aria-label="공매 물건 위치 지도"></div>
     <div class="map-context"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>경기도 <b>공매 지도</b></span><span class="context-divider"></span><span id="mapCount">위치 확인 중</span></div>
     <div class="map-tools"><button id="fitAll" type="button" title="검색 결과 전체 보기"><svg class="icon" aria-hidden="true"><use href="#icon-map"/></svg><span>전체 보기</span></button><button id="baseLocation" type="button" title="서천동 근사 기준점으로 이동"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>기준지</span></button></div>
+    <div class="map-search" id="mapSearch" hidden><button id="searchArea" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>이 지도에서 찾기</button><button type="button" data-clear-area hidden>범위 해제</button></div>
     <div class="map-legend"><span><i class="key parcel"></i>필지 경계</span><span><i class="key exact"></i>지번 위치</span><span><i class="key area"></i>지역 참고 포함</span><button id="legendInfo" type="button" aria-label="경계·위치 정보 안내 열기">?</button></div>
     <p class="map-notice" id="mapNotice" role="status">지도를 준비하고 있어요.</p>
-    <div class="mobile-preview" id="mobilePreview"><span class="preview-eyebrow">지도로 먼저 둘러보세요</span><strong id="previewPrice">나에게 맞는 땅, 어디에 있을까요?</strong><span id="previewAddress">가격 마커를 누르면 매물 정보를 볼 수 있어요.</span><button id="previewOpen" type="button">매물 목록 보기 <svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></button></div>
+    <p class="tile-status" id="tileStatus" role="status" hidden>배경 지도를 불러오지 못했어요. 매물의 네이버 지도 링크로 위치를 확인할 수 있어요.</p>
+    <div class="mobile-preview" id="mobilePreview" hidden><span class="preview-eyebrow"></span><strong id="previewPrice"></strong><span id="previewAddress"></span><button id="previewOpen" type="button">선택한 매물 보기 <svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg></button></div>
   </section>
 </main>
 <button class="view-toggle" id="viewToggle" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-list"/></svg><span id="viewToggleLabel">목록 보기</span><span id="mobileCount">—</span></button>
@@ -83,8 +86,8 @@
 <dialog id="scheduleDialog" class="app-dialog schedule-dialog" aria-labelledby="scheduleTitle">
   <form id="scheduleForm" novalidate>
     <div class="dialog-head"><div><span class="dialog-kicker">입찰 시기에 맞춰 찾기</span><h2 id="scheduleTitle">입찰 일정</h2></div><button type="button" class="icon-button" data-close aria-label="입찰 일정 닫기"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
-    <p class="dialog-copy">여러 회차 중 조건에 맞는 일정과 입찰가를 표시해요.</p>
-    <label class="schedule-field" for="bidPhase">진행 상태<select id="bidPhase"><option value="all">전체</option><option value="upcoming">입찰 예정</option><option value="active">입찰 진행 중</option><option value="private">수의계약 가능</option><option value="unknown">일정 미확인</option></select></label>
+    <p class="dialog-copy">일정과 예산 조건을 함께 충족하는 회차 중 가장 가까운 마감 회차를 표시해요.</p>
+    <label class="schedule-field" for="bidPhase">진행 상태<select id="bidPhase"><option value="all">전체</option><option value="upcoming">입찰 예정</option><option value="active">입찰 진행 중</option><option value="private">수의계약 가능</option><option value="ended">입찰 종료</option><option value="unknown">일정 미확인</option></select></label>
     <fieldset id="bidPeriodControls" class="schedule-period">
       <legend class="sr-only">입찰 기간 조건</legend>
       <label class="schedule-field" for="bidDateBasis">기간 기준<select id="bidDateBasis"><option value="end">입찰 마감일</option><option value="start">입찰 시작일</option></select></label>
@@ -99,7 +102,7 @@
 <dialog id="infoDialog" class="app-dialog info-dialog" aria-labelledby="infoTitle">
   <div class="dialog-head"><div><span class="dialog-kicker">LAND SCOUT</span><h2 id="infoTitle">데이터·이용 안내</h2></div><button type="button" class="icon-button" data-close aria-label="이용 안내 닫기"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
   <div class="info-scroll"><section class="summary" aria-label="수집 현황"><p id="syncStatus" role="status">데이터를 확인하고 있습니다.</p><div class="stats"><div><span>매각 후보</span><strong id="statLots">—</strong></div><div><span>필지 확인</span><strong id="statParcels">—</strong></div><div><span>지역 참고</span><strong id="statAreas">—</strong></div><div><span>위치 미확인</span><strong id="statUnknown">—</strong></div></div><p id="parcelStatus"></p><button id="refresh" type="button" class="secondary">데이터 새로고침 ↻</button></section>
-  <section><h3>지도는 이렇게 읽으세요</h3><p>가까운 매물은 가격 마커 하나로 묶이며, 확대하면 펼쳐집니다. 파란 마커는 지번 위치가 확인된 매물, 주황색 점선 마커는 동·리의 참고 위치를 포함한 매물입니다. 참고 위치는 실제 매물 위치를 뜻하지 않습니다.</p><p>청록색 구획은 공식 연속지적도와 지번을 대조한 필지입니다. 지분 매각은 필지 전체 중 일부 지분을 매각하며, 여러 필지는 확인된 대표 필지 경계를 표시합니다. 연속지적도는 측량 경계 확인용으로 사용할 수 없습니다.</p></section>
+  <section><h3>지도는 이렇게 읽으세요</h3><p>‘이 지도에서 찾기’를 누르면 화면에 보이는 지도 범위로 매물을 좁힙니다. 범위를 바꾸려면 지도를 옮긴 뒤 버튼을 다시 누르세요.</p><p>가까운 매물은 가격 마커 하나로 묶이며, 확대하면 펼쳐집니다. 파란 마커는 지번 위치가 확인된 매물, 주황색 점선 마커는 동·리의 참고 위치를 포함한 매물입니다. 참고 위치는 실제 매물 위치를 뜻하지 않습니다.</p><p>청록색 구획은 공식 연속지적도와 지번을 대조한 필지입니다. 지분 매각은 필지 전체 중 일부 지분을 매각하며, 여러 필지는 확인된 대표 필지 경계를 표시합니다. 연속지적도는 측량 경계 확인용으로 사용할 수 없습니다.</p></section>
   <section><h3>차량 30분·토지 활용 조건</h3><p id="geoStatus">서천 힐스테이트 기준 실주행 시간은 아직 미확인입니다.</p><p>도로, 상하수도, 일조량, 전력계통 연계와 용도지역은 개별 확인이 필요합니다.</p></section>
   <section><h3>입찰 전 원문 확인</h3><p>가격은 표시된 입찰 일정의 최저입찰가입니다. 지분 비율, 권리관계, 공매 공고와 입찰 조건을 온비드에서 확인하세요.</p><a href="https://www.onbid.co.kr/" target="_blank" rel="noopener noreferrer">온비드 바로가기 ↗</a></section>
   <footer>온비드 공식 API · 경기부동산포털·VWorld 연속지적도<br>지도 © OpenStreetMap contributors</footer></div>

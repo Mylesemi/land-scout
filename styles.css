@@ -15,6 +15,9 @@
 * {
   box-sizing:border-box
 }
+[hidden] {
+  display:none!important
+}
 html,body {
   height:100%;
   margin:0
@@ -580,7 +583,7 @@ svg.icon {
 .schedule .closing-soon {
   color:#d2763e
 }
-.map-button {
+.map-button,.map-link {
   display:flex;
   gap:4px;
   align-items:center;
@@ -592,6 +595,10 @@ svg.icon {
   color:#5e75be;
   border-radius:6px;
   white-space:nowrap
+}
+.map-link {
+  border:1px solid #dce4f4;
+  font-weight:600
 }
 .map-button svg {
   width:13px;
@@ -646,11 +653,18 @@ svg.icon {
 .lot-actions {
   display:flex;
   flex-wrap:wrap;
+  align-items:center;
   gap:10px;
   margin:8px 0 12px
 }
 .lot-actions a {
   font-size:10px
+}
+.lot-actions button {
+  color:var(--brand-dark);
+  font-size:11px;
+  min-height:32px;
+  padding:4px 8px
 }
 .lot-details dl {
   display:grid;
@@ -843,6 +857,57 @@ svg.icon {
   width:19px;
   height:19px;
   color:#586c92
+}
+.map-search,.tile-status {
+  position:absolute;
+  top:72px;
+  left:22px;
+  z-index:450
+}
+.map-search {
+  display:flex;
+  gap:6px
+}
+.map-search button,.list-area-clear {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:36px;
+  font-size:11px;
+  color:#36476b;
+  border-color:#dfe5ef
+}
+.map-search button {
+  box-shadow:var(--shadow)
+}
+.map-search button.active,.list-area-clear {
+  color:var(--brand-dark);
+  border-color:#c5d2ff;
+  background:var(--soft)
+}
+.list-area-clear {
+  min-height:28px;
+  margin-bottom:8px;
+  padding:4px 8px
+}
+.map-search .icon,.list-area-clear .icon {
+  width:14px;
+  height:14px
+}
+.tile-status {
+  top:118px;
+  max-width:min(330px,calc(100% - 92px));
+  padding:8px 10px;
+  margin:0;
+  border:1px solid #efd9a7;
+  border-radius:8px;
+  color:#77551c;
+  background:#fff8e8;
+  font-size:11px;
+  pointer-events:none
+}
+#map.tiles-unavailable {
+  background:#edf1f4
 }
 .map-legend {
   position:absolute;
@@ -1337,6 +1402,9 @@ svg.icon {
     left:16px;
     top:18px
   }
+  .map-search,.tile-status {
+    left:16px
+  }
   .map-tools {
     right:14px;
     top:18px
@@ -1659,6 +1727,15 @@ svg.icon {
     padding:9px 11px;
     font-size:11px
   }
+  .map-search,.tile-status {
+    left:13px
+  }
+  .map-search {
+    top:56px
+  }
+  .tile-status {
+    top:102px
+  }
   .map-tools {
     right:13px;
     top:13px;
@@ -1687,17 +1764,23 @@ svg.icon {
   }
   .map-legend {
     left:13px;
-    bottom:245px;
+    bottom:86px;
     font-size:9px;
     gap:10px;
     padding:8px 10px
   }
   .map-notice {
     left:13px;
-    bottom:219px;
-    font-size:8px;
+    bottom:64px;
+    font-size:9px;
     max-width:calc(100% - 25px);
     background:#ffffffe8
+  }
+  .has-preview .map-legend {
+    bottom:217px
+  }
+  .has-preview .map-notice {
+    bottom:193px
   }
   .mobile-preview {
     display:flex;
@@ -1710,7 +1793,7 @@ svg.icon {
     background:#fffffff7;
     border:1px solid #e0e7f2;
     border-radius:13px;
-    padding:16px 18px 14px;
+    padding:10px 14px;
     box-shadow:0 4px 24px #2c426f1a;
     gap:4px
   }
@@ -1732,10 +1815,10 @@ svg.icon {
     text-overflow:ellipsis
   }
   .mobile-preview button {
-    font-size:10px;
+    font-size:11px;
     color:var(--brand);
-    min-height:25px;
-    padding:5px 0 0;
+    min-height:30px;
+    padding:2px 0 0;
     border:0;
     background:none;
     align-self:flex-start;
@@ -1883,11 +1966,11 @@ svg.icon {
   .mobile-preview button {
     min-height:21px
   }
-  .map-legend {
-    bottom:216px
+  .has-preview .map-legend {
+    bottom:200px
   }
-  .map-notice {
-    bottom:193px
+  .has-preview .map-notice {
+    bottom:177px
   }
   .view-toggle {
     bottom:16px

@@ -21,9 +21,10 @@
   function validScheduleRange(from='',to='') {
     return (!from || Number.isFinite(dateTimestamp(from))) && (!to || Number.isFinite(dateTimestamp(to))) && (!from || !to || from<=to);
   }
+  const isClosed = lot => /취소|중지|완료|낙찰|유찰/.test(lot.status || '');
   function bidPhase(lot,now=Date.now()) {
+    if (isClosed(lot)) return 'ended';
     if (/수의/.test(lot.status || '')) return 'private';
-    if (/취소|중지|매각완료|낙찰|유찰/.test(lot.status || '')) return 'ended';
     const start=bidTimestamp(lot.bid_start),end=bidTimestamp(lot.bid_end);
     if (!Number.isFinite(start) || !Number.isFinite(end) || start>end) return 'unknown';
     if (now<start) return 'upcoming';
@@ -39,11 +40,11 @@
     const time=bidTimestamp(basis==='start' ? lot.bid_start : lot.bid_end);
     return Number.isFinite(time) && (!from || time>=dateTimestamp(from)) && (!to || time<dateTimestamp(to)+DAY);
   }
-  function filterLotsBySchedule(lots,filters={},now=Date.now()) {
+  function filterLotsBySchedule(lots,filters={},now=Date.now(),maxPrice=Infinity) {
     if ((!filters.phase || filters.phase==='all') && !filters.from && !filters.to) return lots;
     return lots.flatMap(lot=>{
       const rounds=Array.isArray(lot.rounds) && lot.rounds.length ? lot.rounds : [lot];
-      const matching=rounds.filter(round=>matchesSchedule(round,filters,now));
+      const matching=rounds.filter(round=>round.min_price<=maxPrice && matchesSchedule(round,filters,now));
       if (!matching.length) return [];
       const chosen=groupLots(matching,now)[0];
       const location={};
@@ -58,9 +59,13 @@
       groups.get(lot.lot_id).push(lot);
     });
     return [...groups.values()].map(rounds=>{
-      const active=rounds.filter(round=>/수의/.test(round.status || '') || !Number.isFinite(bidTimestamp(round.bid_end)) || bidTimestamp(round.bid_end)>=now);
+      const active=rounds.filter(round=>!isClosed(round) && (/수의/.test(round.status || '') || !Number.isFinite(bidTimestamp(round.bid_end)) || bidTimestamp(round.bid_end)>=now));
       const eligible=active.length ? active : rounds;
       eligible.sort((a,b)=>{
+        // A private-contract record can carry an old deadline from a previous round.
+        const aPrivate=/수의/.test(a.status || ''), bPrivate=/수의/.test(b.status || '');
+        if (aPrivate!==bPrivate) return aPrivate ? 1 : -1;
+        if (aPrivate) return a.min_price-b.min_price;
         const aTime=bidTimestamp(a.bid_end),bTime=bidTimestamp(b.bid_end);
         return (Number.isFinite(aTime)?aTime:Infinity)-(Number.isFinite(bTime)?bTime:Infinity) || a.min_price-b.min_price;
       });

@@ -12,7 +12,8 @@ const compactMoney = value => {
 const shortAddress = lot => String(lot.address || lot.name || '').replace(/^경기도\s*/, '');
 const areaText = value => Number.isFinite(Number(value)) && value != null && value!=='' ? Number(value).toLocaleString('ko-KR',{maximumFractionDigits:2}) + '㎡' : '면적 미확인';
 const icon = name => '<svg class="icon" aria-hidden="true"><use href="#icon-' + name + '"/></svg>';
-let scope = 'all', saved = new Set(), toastTimer, priceBeforeEdit='100000000', mapNeedsFit=false;
+let scope = 'all', saved = new Set(), toastTimer, priceCap=100000000, mapNeedsFit=false, searchBounds=null;
+const mobileLayout=window.matchMedia('(max-width:640px)');
 try {
   const values = JSON.parse(localStorage.getItem('land-scout-saved') || '[]');
   if (Array.isArray(values)) saved = new Set(values.filter(v=>typeof v==='string'));
@@ -33,11 +34,12 @@ function setScope(value) {
 }
 function updatePreview() {
   const lot=visibleLots.find(lot=>recordKey(lot)===selectedKey);
-  $('mobilePreview').querySelector('.preview-eyebrow').textContent=lot ? (lot.property_type || '공매') + ' · ' + locationLabel[locationType(lot)] : '지도로 먼저 둘러보세요';
-  const hasMapped=visibleLots.some(lot=>locationType(lot)!=='unknown');
-  $('previewPrice').textContent=lot ? compactMoney(lot.min_price) : !visibleLots.length ? '조건에 맞는 매물이 없어요' : hasMapped ? '나에게 맞는 땅, 어디에 있을까요?' : '검색한 매물은 목록에서 확인하세요';
-  $('previewAddress').textContent=lot ? shortAddress(lot) : !visibleLots.length ? '검색 조건을 바꾸거나 관심 매물을 확인해 보세요.' : hasMapped ? '가격 마커를 누르면 매물 정보를 볼 수 있어요.' : '위치 미확인 '+visibleLots.length+'건 · 지번으로 지도 검색이 가능해요.';
-  $('previewOpen').innerHTML=(lot ? '선택한 매물 보기 ' : '매물 목록 보기 ') + icon('chevron');
+  $('mobilePreview').hidden=!lot;
+  $('map').closest('.map-panel').classList.toggle('has-preview',Boolean(lot));
+  if (!lot) return;
+  $('mobilePreview').querySelector('.preview-eyebrow').textContent=(lot.property_type || '공매')+' · '+locationLabel[locationType(lot)];
+  $('previewPrice').textContent=compactMoney(lot.min_price);
+  $('previewAddress').textContent=shortAddress(lot);
 }
 function revealCard(key) {
   const index=visibleLots.findIndex(lot=>recordKey(lot)===key);
@@ -62,10 +64,10 @@ const point = lot => {
   const lat = Number(lot.lat), lng = Number(lot.lng);
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132 ? [lat, lng] : null;
 };
-const {bidTimestamp,groupLots,kstDate,validScheduleRange,filterLotsBySchedule} = LandScoutData;
+const {bidTimestamp,bidPhase,groupLots,kstDate,validScheduleRange,filterLotsBySchedule} = LandScoutData;
 const defaultSchedule=()=>({phase:'all',basis:'end',from:'',to:''});
 let scheduleFilters=defaultSchedule();
-const phaseLabels={all:'전체',upcoming:'입찰 예정',active:'입찰 진행 중',private:'수의계약 가능',unknown:'일정 미확인'};
+const phaseLabels={all:'전체',upcoming:'입찰 예정',active:'입찰 진행 중',private:'수의계약 가능',ended:'입찰 종료',unknown:'일정 미확인'};
 function fmtBid(value) {
   const time = bidTimestamp(value);
   return Number.isFinite(time) ? new Intl.DateTimeFormat('ko-KR', {timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(time) : '미확인';
@@ -85,18 +87,25 @@ function geometryValid(feature) {
   );
 }
 
-let lots = [], visibleLots = [], parcelShapes = new Map(), currentData = null;
+let auctionItems = [], lots = [], visibleLots = [], parcelShapes = new Map(), parcelBounds = new Map(), currentData = null;
 let selectedKey = null, loading = false, map = null, layer = null, markerLayer = null;
 let featureLayers = new Map(), cardNodes = new Map(), mapEntries = [], markerGroups = [], allBounds = null;
 let loadFailed = false, parcelLoadFailed = false, page = 1;
+let lastScheduleCheck=Date.now();
 const PAGE_SIZE = 24;
 
 if (window.L) {
   try {
     map = L.map('map', {scrollWheelZoom:true,zoomControl:false}).setView([37.237,127.072],10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxNativeZoom:19,maxZoom:21, attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
+    });
+    tiles.on('load',()=>{
+      const missing=!map?.getContainer().querySelector('.leaflet-tile-loaded');
+      $('map').classList.toggle('tiles-unavailable',missing);
+      $('tileStatus').hidden=!missing;
+    });
+    tiles.addTo(map);
     layer = L.layerGroup().addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     L.control.zoom({position:'topright'}).addTo(map);
@@ -106,23 +115,41 @@ if (window.L) {
     map = null;
   }
 }
+$('mapSearch').hidden=!map;
+['fitAll','baseLocation'].forEach(id=>$(id).disabled=!map);
 const locationType = lot => parcelShapes.has(String(lot.pnu)) ? 'parcel' : !point(lot) ? 'unknown' : lot.location_precision === 'exact' ? 'exact' : 'area';
 const locationLabel = {parcel:'필지 경계 확인',exact:'지번 위치 확인',area:'지역 참고 위치',unknown:'위치 미확인'};
 
+function inSearchArea(lot) {
+  if (!searchBounds) return true;
+  const bounds=parcelBounds.get(String(lot.pnu));
+  if (bounds) return searchBounds.intersects(bounds);
+  const coords=point(lot);
+  return coords && searchBounds.contains(coords);
+}
+
 function chooseRows() {
   const query = $('search').value.trim().toLocaleLowerCase('ko-KR');
-  const inputPrice = $('price').value.trim();
-  const cap = inputPrice === '' ? 100000000 : Math.max(0, Math.min(100000000, Number(inputPrice) || 0));
   const kind = $('kind').value, precision = $('location').value;
-  const rows = filterLotsBySchedule(lots,scheduleFilters).filter(lot => lot.min_price <= cap &&
+  const now=Date.now();
+  const rows = filterLotsBySchedule(lots,scheduleFilters,now,priceCap).filter(lot => lot.min_price <= priceCap &&
+    inSearchArea(lot) &&
     (kind === 'all' || lot.property_type === kind) &&
     (precision === 'all' || precision === 'exact' && ['exact','parcel'].includes(locationType(lot)) || precision === locationType(lot)) &&
     (!$('excludeShares').checked || !lot.share) &&
     (!query || [lot.name,lot.address,lot.lot_id,lot.category].join(' ').toLocaleLowerCase('ko-KR').includes(query))
   );
   const ranks = {parcel:0,exact:1,area:2,unknown:3};
+  const deadline=lot=>{
+    const phase=bidPhase(lot,now);
+    if (phase==='active' || phase==='upcoming' || phase==='ended' && scheduleFilters.phase==='ended') {
+      const time=bidTimestamp(lot.bid_end);
+      if (Number.isFinite(time)) return time;
+    }
+    return Infinity;
+  };
   return rows.sort((a,b) => {
-    if ($('sort').value === 'closing') return (bidTimestamp(a.bid_end) || Infinity) - (bidTimestamp(b.bid_end) || Infinity) || a.min_price - b.min_price;
+    if ($('sort').value === 'closing') return deadline(a)-deadline(b) || a.min_price-b.min_price;
     if ($('sort').value === 'price') return a.min_price - b.min_price;
     return ranks[locationType(a)] - ranks[locationType(b)] || a.min_price - b.min_price;
   });
@@ -140,9 +167,10 @@ function markerIcon(entry, selected) {
   });
 }
 function popupContent(rows,type) {
+  const approximate=rows.some(row=>locationType(row.lot)==='area');
   return '<span class="popup-heading">'+esc(locationLabel[type] || '주변 매물')+' · '+rows.length+'건</span>'+
-    (type==='area' ? '<p>행정구역의 참고 위치입니다.<br>실제 매물 위치는 지번으로 확인하세요.</p>' : '')+
-    '<div class="popup-items">'+rows.map(row=>'<button type="button" class="popup-lot" data-record="'+esc(row.key)+'"><b>'+compactMoney(row.lot.min_price)+'</b>'+esc(shortAddress(row.lot))+'<br><small>'+esc(row.lot.property_type)+' · '+esc(areaText(row.lot.area))+(row.lot.share ? ' · 지분 매각' : '')+'</small></button>').join('')+'</div>';
+    (approximate ? '<p>지역 참고 위치는 지번 검색으로 실제 위치를 확인하세요.</p>' : '')+
+    '<div class="popup-items">'+rows.map(row=>'<button type="button" class="popup-lot" data-record="'+esc(row.key)+'"><b>'+compactMoney(row.lot.min_price)+'</b>'+esc(shortAddress(row.lot))+'<br><small>'+esc(row.lot.property_type)+' · '+esc(locationLabel[locationType(row.lot)])+(row.lot.share ? ' · 지분 매각' : '')+'</small></button>').join('')+'</div>';
 }
 function updateSelection() {
   cardNodes.forEach((node,key)=>{
@@ -166,29 +194,35 @@ function focusLot(key,reveal) {
   if (reveal) revealCard(key);
   updateSelection();
   if (!map || !entry) return;
-  if (entry.outline) map.fitBounds(entry.outline.getBounds().pad(.35),{maxZoom:21,paddingTopLeft:[35,75],paddingBottomRight:[65,window.matchMedia('(max-width:640px)').matches ? 245 : 65],animate:false});
+  if (entry.outline) map.fitBounds(entry.outline.getBounds().pad(.35),{maxZoom:21,paddingTopLeft:[24,110],paddingBottomRight:[65,mobileLayout.matches ? 202 : 65],animate:false});
   else map.setView(entry.coords,entry.type==='area' ? 13 : 17,{animate:false});
-  drawMarkers();
-  if (entry.marker && (entry.rows.length>1 || !window.matchMedia('(max-width:640px)').matches)) entry.marker.openPopup();else map.closePopup();
+  if (entry.marker?.getPopup() && !mobileLayout.matches) entry.marker.openPopup();
+  else map.closePopup();
   const row=entry.rows.find(row=>row.key===key);
   $('mapNotice').textContent=locationLabel[entry.type]+' · '+row.lot.address+(row.lot.share ? ' · 필지 전체 중 지분 매각' : '');
 }
 function fitAll(recenter=true) {
   const mapVisible=map && map.getContainer().clientWidth>0;
   mapNeedsFit=Boolean(map && !mapVisible);
-  if (mapVisible && recenter) {map.closePopup();map.invalidateSize();if (allBounds?.isValid()) map.fitBounds(allBounds.pad(.12),{maxZoom:16,animate:false});}
+  if (mapVisible && recenter) {
+    map.closePopup();map.invalidateSize();
+    if (allBounds?.isValid()) map.fitBounds(allBounds.pad(.08),{maxZoom:16,paddingTopLeft:[24,108],paddingBottomRight:[68,mobileLayout.matches ? 92 : 70],animate:false});
+  }
   const mapped=visibleLots.filter(lot=>locationType(lot)!=='unknown').length;
   $('mapCount').textContent='지도 '+mapped+'건';
-  $('mapNotice').textContent=!map ? '지도를 불러오지 못했습니다. 매물의 지도 검색 링크를 이용하세요.' : !mapped ? '이 조건에서 위치가 확인된 매물이 없습니다. 목록에서 지번으로 검색하세요.' : '지도 '+mapped+'건 · 위치 미확인 '+(visibleLots.length-mapped)+'건은 목록에서 확인';
+  $('mapNotice').textContent=!map ? '지도를 불러오지 못했어요. 목록에서 지번으로 검색할 수 있어요.'
+    : searchBounds ? '지정한 지도 범위 · 매물 '+mapped+'건'
+    : !mapped ? '지도에 표시할 매물이 없어요. 매물 목록이나 검색 조건을 확인하세요.'
+    : '지도 '+mapped+'건 · 위치 미확인 '+(visibleLots.length-mapped)+'건은 목록에서 확인';
   drawMarkers();
 }
 function drawMarkers() {
   if (!map || !markerLayer) return;
   markerLayer.clearLayers(); markerGroups=[];
-  const zoom=map.getZoom(), radius=zoom<13 ? 85 : zoom<16 ? 58 : 0;
+  const zoom=map.getZoom(), radius=zoom<13 ? 85 : zoom<16 ? 58 : zoom<19 ? 30 : 16;
   mapEntries.forEach(entry=>{
     const projected=map.project(entry.coords,zoom);
-    let group=radius && markerGroups.find(g=>projected.distanceTo(g.projected)<radius);
+    let group=markerGroups.find(g=>projected.distanceTo(g.projected)<radius);
     if (!group) {
       group={type:entry.type,coords:entry.coords,projected,rows:[],entries:[]};
       markerGroups.push(group);
@@ -198,20 +232,24 @@ function drawMarkers() {
   });
   markerGroups.forEach(group=>{
     const clustered=group.entries.length>1;
+    const expand=clustered && zoom<19;
+    const pick=group.rows.length>1;
     const selected=group.rows.some(row=>row.key===selectedKey);
     const title=(clustered ? '주변 매물'+(group.rows.some(row=>locationType(row.lot)==='area') ? ' (지역 참고 포함)' : '') : locationLabel[group.type])+' '+group.rows.length+'건 · '+compactMoney(Math.min(...group.rows.map(row=>row.lot.min_price)))+(group.rows.length>1 ? '부터' : '');
     group.marker=L.marker(group.coords,{icon:markerIcon(group,selected),title,alt:title,zIndexOffset:selected ? 1000 : 0}).addTo(markerLayer);
     group.entries.forEach(entry=>entry.marker=group.marker);
-    group.marker.bindTooltip(clustered ? '확대하여 '+group.rows.length+'건 보기' : locationLabel[group.type],{direction:'top',offset:[0,-33],className:'lot-tooltip'});
-    if (!clustered) group.marker.bindPopup(popupContent(group.rows,group.type),{maxWidth:300,autoPanPaddingTopLeft:[20,80],autoPanPaddingBottomRight:[20,window.matchMedia('(max-width:640px)').matches ? 220 : 40]});
-    group.marker.on('click',()=>{
-      if (clustered) {
+    group.marker.bindTooltip(expand ? '확대하여 '+group.rows.length+'건 보기' : pick ? '매물 '+group.rows.length+'건 선택' : locationLabel[group.type],{direction:'top',offset:[0,-33],className:'lot-tooltip'});
+    if (!expand && (pick || !mobileLayout.matches)) {
+      group.marker.bindPopup(popupContent(group.rows,group.type),{maxWidth:300,autoPanPaddingTopLeft:[20,100],autoPanPaddingBottomRight:[20,mobileLayout.matches ? 95 : 40]});
+    }
+    if (expand) {
+      group.marker.on('click',()=>{
         const bounds=L.latLngBounds(group.entries.map(entry=>entry.coords));
-        map.fitBounds(bounds.pad(.15),{maxZoom:Math.min(18,zoom+2),animate:false});
-        return;
-      }
-      focusLot(group.rows[0].key,true);
-    });
+        map.setView(bounds.getCenter(),Math.min(19,zoom+2),{animate:false});
+      });
+    } else if (!pick) {
+      group.marker.on('click',()=>focusLot(group.rows[0].key,true));
+    }
   });
 }
 function renderMap(rows,recenter=true) {
@@ -241,15 +279,21 @@ function renderMap(rows,recenter=true) {
   fitAll(recenter);
 }
 function compactSchedule(lot) {
-  const start=bidTimestamp(lot.bid_start),end=bidTimestamp(lot.bid_end),now=Date.now();
+  const start=bidTimestamp(lot.bid_start),end=bidTimestamp(lot.bid_end),phase=bidPhase(lot);
   const date=value=>new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'numeric',day:'numeric'}).format(value);
-  if (String(lot.status).includes('수의')) return ['수의계약 가능','일정은 원문에서 확인'];
-  if (Number.isFinite(start) && start>now) return [date(start)+' 입찰 시작',lot.status || '입찰 예정'];
-  if (Number.isFinite(end) && end>=now) return [date(end)+' 입찰 마감',lot.status || '입찰 진행'];
-  return ['입찰 일정 확인',lot.status || '상태 미확인'];
+  if (phase==='private') return [phaseLabels[phase],'접수 조건은 온비드에서 확인'];
+  if (phase==='upcoming') return [date(start)+' 입찰 시작',phaseLabels[phase]];
+  if (phase==='active') return [date(end)+' 입찰 마감',phaseLabels[phase]];
+  if (phase==='ended') return [phaseLabels[phase],/취소|중지|완료|낙찰|유찰/.test(lot.status || '') ? lot.status : date(end)+' 마감'];
+  return [phaseLabels[phase],'일정은 온비드에서 확인'];
 }
 function createCard(lot) {
   const type=locationType(lot),key=recordKey(lot),[schedule,status]=compactSchedule(lot);
+  const naverMapURL='https://map.naver.com/p/search/'+encodeURIComponent(lot.address);
+  const canFocus=type!=='unknown' && Boolean(map);
+  const mapAction=canFocus
+    ? '<button class="map-button" type="button" aria-pressed="false">'+icon('pin')+(type==='parcel' ? '필지 보기' : '지도 보기')+'</button>'
+    : '<a class="map-link" href="'+esc(naverMapURL)+'" target="_blank" rel="noopener noreferrer">지번 검색 ↗</a>';
   const category=String(lot.category || '').replace(/^부동산\s*/, '').replace(/^(토지|주거용건물)\s*/, '');
   const card=document.createElement('article');card.className='lot';card.dataset.record=key;
   card.setAttribute('aria-label',shortAddress(lot)+' · '+money(lot.min_price));
@@ -257,12 +301,12 @@ function createCard(lot) {
     '<div class="price-row"><strong class="price" title="'+money(lot.min_price)+'">'+compactMoney(lot.min_price)+'</strong><span class="price-label">'+(lot.matching_round_count ? '선택 일정 입찰가' : '최저입찰가')+'</span></div>'+
     '<h3>'+esc(shortAddress(lot))+'</h3><p class="property-meta"><b>'+esc(areaText(lot.area))+'</b> · '+(lot.property_type==='주택' ? '건물 면적' : '토지 면적')+'</p>'+
     '<div class="badges"><span class="badge '+type+'">'+locationLabel[type]+'</span>'+(lot.share ? '<span class="badge share">지분 매각</span>' : '')+(lot.multiple_parcels ? '<span class="badge">여러 필지 · 대표 경계</span>' : '')+'</div>'+
-    '<div class="card-bottom"><p class="schedule"><b>'+esc(schedule)+'</b>'+esc(status)+'</p><button class="map-button" type="button" aria-pressed="false"'+(type==='unknown' || !map ? ' disabled' : '')+'>'+icon('pin')+(type==='parcel' ? '필지 보기' : type==='unknown' ? '위치 미확인' : '지도 보기')+'</button></div>'+
+    '<div class="card-bottom"><p class="schedule"><b>'+esc(schedule)+'</b>'+esc(status)+'</p>'+mapAction+'</div>'+
     '<details class="lot-details"><summary>입찰·상세 정보</summary><div class="lot-details-content"><p class="full-name">'+esc(lot.name || lot.address)+'</p><p class="schedule-full">표시 일정의 최저입찰가 <b>'+money(lot.min_price)+'</b><br>시작 '+fmtBid(lot.bid_start)+'<br>종료 '+fmtBid(lot.bid_end)+'</p><div class="lot-actions"></div><dl></dl></div></details>';
   card.querySelector('.favorite-button').addEventListener('click',()=>toggleSaved(lot));
   const select=()=>{setView('map');focusLot(key,false);};
-  card.querySelector('.map-button').addEventListener('click',select);
-  card.addEventListener('click',event=>{if (!event.target.closest('button,a,details,input,select') && type!=='unknown' && map) select();});
+  card.querySelector('.map-button')?.addEventListener('click',select);
+  card.addEventListener('click',event=>{if (!event.target.closest('button,a,details,input,select') && canFocus) select();});
   const content=card.querySelector('.lot-details-content'),actions=card.querySelector('.lot-actions');
   if (lot.rounds?.length>1) {
     const rounds=document.createElement('details');rounds.className='round-details';
@@ -270,10 +314,25 @@ function createCard(lot) {
     content.insertBefore(rounds,actions);
   }
   const appendLink=(url,label)=>{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label;actions.append(a);};
-  appendLink('https://map.naver.com/p/search/'+encodeURIComponent(lot.address),'네이버 지도 ↗');
+  if (canFocus) appendLink(naverMapURL,'네이버 지도 ↗');
   const sourceURL=parcelShapes.get(String(lot.pnu))?.properties?.source_url;
   if (typeof sourceURL==='string' && sourceURL.startsWith('https://gris.gg.go.kr/map/main/grisMapView.do?')) appendLink(sourceURL,'공식 지적도 ↗');
-  if (typeof lot.url==='string' && /^https:\/\//.test(lot.url)) appendLink(lot.url,'온비드 공고 ↗');
+  if (typeof lot.url==='string' && /^https:\/\//.test(lot.url)) {
+    appendLink(lot.url,'온비드 공고 ↗');
+  } else {
+    appendLink('https://www.onbid.co.kr/','온비드에서 검색 ↗');
+    const copy=document.createElement('button');
+    copy.type='button';copy.textContent='물건번호 복사';
+    copy.addEventListener('click',async()=>{
+      try {
+        await navigator.clipboard.writeText(String(lot.lot_id));
+        toast('물건번호를 복사했어요. 온비드 검색에 붙여 넣으세요.');
+      } catch (_) {
+        toast('물건번호 '+lot.lot_id+'를 온비드에서 검색하세요.');
+      }
+    });
+    actions.append(copy);
+  }
   const fields=[['물건번호',lot.lot_id],['면적 기준',lot.property_type==='주택' ? '건물 면적 · 지분 여부 확인' : '토지 면적 · 지분 여부 확인'],['실주행 시간',lot.drive_min==null ? '미확인' : lot.drive_min+'분'],['진입도로',lot.road],['상수도 / 하수도',(lot.water || '미확인')+' / '+(lot.sewer || '미확인')],['전력계통 / 일조',(lot.grid || '미확인')+' / '+(lot.sunlight || '미확인')]];
   const dl=card.querySelector('dl');
   fields.forEach(([label,value])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value ?? '미확인';dl.append(dt,dd);});
@@ -292,11 +351,12 @@ function render({preserveMap=false,keepMapView=false}={}) {
   $('savedTabCount').textContent=filtered.filter(savedLot).length; $('savedCount').textContent=savedCount;
   $('mobileCount').textContent=visibleLots.length;
   $('scopeLabel').textContent={all:'전체 매물',mapped:'지도에 표시된 매물',saved:'관심 매물'}[scope];
-  $('listHint').textContent=scope==='saved' ? '관심 매물은 이 브라우저에 저장돼요.' : '전체 '+filtered.length+'건 중 지도 '+mapped+'건 · 위치 미확인 매물은 목록에서 확인';
+  $('listHint').textContent=searchBounds ? '지정한 지도 범위에서 '+filtered.length+'건' : scope==='saved' ? '관심 매물은 이 브라우저에 저장돼요.' : '전체 '+filtered.length+'건 중 지도 '+mapped+'건 · 위치 미확인 매물은 목록에서 확인';
+  document.querySelectorAll('[data-clear-area]').forEach(button=>{button.hidden=!searchBounds;});
+  $('searchArea').classList.toggle('active',Boolean(searchBounds));
   $('savedButton').setAttribute('aria-pressed',String(scope==='saved'));
   document.querySelectorAll('[data-scope]').forEach(button=>{button.classList.toggle('active',button.dataset.scope===scope);button.setAttribute('aria-pressed',String(button.dataset.scope===scope));});
-  const cap=$('price').value==='' ? 100000000 : Math.max(0,Math.min(100000000,Number($('price').value)||0));
-  const priceText=compactMoney(cap);
+  const priceText=compactMoney(priceCap);
   $('priceFilterLabel').textContent=priceText+(priceText.endsWith('원') ? '' : '원')+' 이하';
   updateScheduleLabel();
   const pages=Math.max(1,Math.ceil(visibleLots.length/PAGE_SIZE));page=Math.min(page,pages);
@@ -308,18 +368,30 @@ function render({preserveMap=false,keepMapView=false}={}) {
     const title=loading ? '매물을 불러오고 있어요.' : loadFailed && !lots.length ? '데이터를 불러오지 못했어요.' : scope==='saved' && !savedCount ? '마음에 드는 매물을 모아보세요.' : '조건에 맞는 매물이 없어요.';
     const copy=scope==='saved' && !savedCount ? '매물의 하트를 누르면 여기에 저장돼요.' : loadFailed && !lots.length ? '수집 현황에서 새로고침해 주세요.' : '검색어나 필터를 조금 바꿔보세요.';
     message.innerHTML=icon(scope==='saved' ? 'heart' : 'search')+'<strong>'+title+'</strong>'+copy;
-    if (lots.length) {const reset=document.createElement('button');reset.type='button';reset.textContent=scope==='saved' ? '전체 매물 보기' : '조건 초기화';reset.addEventListener('click',resetFilters);message.append(document.createElement('br'),reset);}
+    if (lots.length) {
+      const reset=document.createElement('button');reset.type='button';
+      reset.textContent=searchBounds ? '지도 범위 해제' : scope==='saved' ? '전체 매물 보기' : '조건 초기화';
+      reset.addEventListener('click',searchBounds ? clearSearchArea : resetFilters);
+      message.append(document.createElement('br'),reset);
+    }
     list.append(message);
   }
   visibleLots.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE).forEach(lot=>{const card=createCard(lot);list.append(card);cardNodes.set(recordKey(lot),card);});
-  if (!preserveMap) {renderMap(visibleLots,!keepMapView);if (selectedKey && !keepMapView) focusLot(selectedKey,false);}
+  if (!preserveMap) {
+    const recenter=!keepMapView && !searchBounds;
+    renderMap(visibleLots,recenter);
+    if (selectedKey && recenter) focusLot(selectedKey,false);
+  }
   updateSelection();
 }
 
 function resetFilters() {
-  $('search').value=''; $('price').value='100000000'; $('kind').value='all';
+  $('search').value=''; priceCap=100000000; $('kind').value='all';
   $('location').value='all'; $('sort').value='location'; $('excludeShares').checked=false;
-  scheduleFilters=defaultSchedule();scope='all';selectedKey=null;page=1;render();
+  scheduleFilters=defaultSchedule();searchBounds=null;scope='all';selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
+}
+function clearSearchArea() {
+  searchBounds=null;selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
 }
 async function readJSON(url) {
   const controller = new AbortController(), timeout = setTimeout(()=>controller.abort(),15000);
@@ -363,13 +435,22 @@ async function load() {
   if (loading) return;
   loading=true; $('refresh').disabled=true; $('refresh').textContent='확인 중…';
   const [auctions,parcels]=await Promise.allSettled([readJSON('./data/auctions.json'),readJSON('./data/parcels.geojson')]);
-  if (auctions.status==='fulfilled' && Array.isArray(auctions.value.items)) {
+  if (auctions.status==='fulfilled' && Array.isArray(auctions.value?.items)) {
     currentData=auctions.value;
-    lots=groupLots(currentData.items.filter(lot=>lot && lot.address && Number.isFinite(lot.min_price) && lot.min_price>0 && lot.min_price<=100000000));
+    auctionItems=currentData.items.filter(lot=>lot && lot.address && Number.isFinite(lot.min_price) && lot.min_price>0 && lot.min_price<=100000000);
+    lastScheduleCheck=Date.now();
+    lots=groupLots(auctionItems,lastScheduleCheck);
     page=1;
     loadFailed=false;
-    parcelLoadFailed=parcels.status==='rejected';
-    parcelShapes=new Map(parcels.status==='fulfilled' && Array.isArray(parcels.value.features) ? parcels.value.features.filter(geometryValid).map(f=>[String(f.properties.pnu),f]) : []);
+    parcelLoadFailed=parcels.status==='rejected' || !Array.isArray(parcels.value?.features);
+    if (!parcelLoadFailed) {
+      parcelShapes=new Map(parcels.value.features.filter(geometryValid).map(feature=>[String(feature.properties.pnu),feature]));
+      parcelBounds.clear();
+      if (map) parcelShapes.forEach(({geometry},pnu)=>{
+        const vertices=geometry.coordinates.flat(geometry.type==='Polygon' ? 1 : 2);
+        parcelBounds.set(pnu,L.latLngBounds(vertices.map(([lng,lat])=>[lat,lng])));
+      });
+    }
   } else {
     loadFailed=true;
   }
@@ -385,7 +466,12 @@ async function load() {
 document.querySelector('.skip-link').addEventListener('click',event=>{event.preventDefault();setView('list');$('resultsHeading').focus();});
 $('refresh').addEventListener('click',load);
 $('reset').addEventListener('click',resetFilters);
-$('fitAll').addEventListener('click',()=>{selectedKey=null;updateSelection();fitAll();});
+$('fitAll').addEventListener('click',()=>{if (searchBounds) clearSearchArea();else {selectedKey=null;updateSelection();fitAll();}});
+$('searchArea').addEventListener('click',()=>{
+  searchBounds=map.getBounds();selectedKey=null;page=1;map.closePopup();
+  render({keepMapView:true});$('listScroll').scrollTop=0;
+});
+document.querySelectorAll('[data-clear-area]').forEach(button=>button.addEventListener('click',clearSearchArea));
 $('baseLocation').addEventListener('click',()=>{if (map) {map.setView([37.237,127.072],13,{animate:false});$('mapNotice').textContent='서천동 근사 기준점 · 출입구 위치와 실주행 시간은 미확인';}});
 $('previous').addEventListener('click',()=>{page=Math.max(1,page-1);render({preserveMap:true});$('listScroll').scrollTop=0;});
 $('next').addEventListener('click',()=>{page+=1;render({preserveMap:true});$('listScroll').scrollTop=0;});
@@ -399,7 +485,7 @@ $('viewToggle').addEventListener('click',()=>setView(document.body.dataset.view=
 $('previewOpen').addEventListener('click',()=>{setView('list');if (selectedKey) revealCard(selectedKey);});
 const showInfo=()=>$('infoDialog').showModal();
 ['infoButton','statusButton','legendInfo'].forEach(id=>$(id).addEventListener('click',showInfo));
-$('filterButton').addEventListener('click',()=>{priceBeforeEdit=$('price').value;$('filterDialog').returnValue='';$('filterDialog').showModal();$('price').focus();updatePricePresets();});
+$('filterButton').addEventListener('click',()=>{$('price').value=String(priceCap);$('filterDialog').showModal();$('price').focus();updatePricePresets();});
 document.querySelectorAll('[data-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('click',event=>{if (event.target===dialog) {const rect=dialog.getBoundingClientRect();if (event.clientX<rect.left || event.clientX>rect.right || event.clientY<rect.top || event.clientY>rect.bottom) dialog.close();}}));
 function updatePricePresets() {document.querySelectorAll('[data-price]').forEach(button=>button.classList.toggle('active',button.dataset.price===$('price').value));}
@@ -407,13 +493,11 @@ document.querySelectorAll('[data-price]').forEach(button=>button.addEventListene
 $('price').addEventListener('input',updatePricePresets);
 function applyPrice() {
   const input=$('price');
-  if (input.value==='') input.value='100000000';
-  input.value=String(Math.max(0,Math.min(100000000,Number(input.value)||0)));
+  priceCap=input.value==='' ? 100000000 : Math.max(0,Math.min(100000000,Number(input.value)||0));
   selectedKey=null;page=1;render();updatePricePresets();$('filterDialog').close('applied');$('listScroll').scrollTop=0;
 }
 $('applyPrice').addEventListener('click',applyPrice);
 $('price').addEventListener('keydown',event=>{if (event.key==='Enter') {event.preventDefault();applyPrice();}});
-$('filterDialog').addEventListener('close',()=>{if ($('filterDialog').returnValue!=='applied') $('price').value=priceBeforeEdit;updatePricePresets();});
 function scheduleFromForm() {
   return {phase:$('bidPhase').value,basis:$('bidDateBasis').value,from:$('bidFrom').value,to:$('bidTo').value};
 }
@@ -460,11 +544,19 @@ $('scheduleForm').addEventListener('submit',event=>{
   scheduleFilters=draft;selectedKey=null;page=1;render();$('listScroll').scrollTop=0;$('scheduleDialog').close();
 });
 function refreshScheduleTime() {
-  if (!['upcoming','active'].includes(scheduleFilters.phase) || document.visibilityState!=='visible') return;
-  const next=scopeRows(chooseRows());
-  if (next.length!==visibleLots.length || next.some((lot,index)=>recordKey(lot)!==recordKey(visibleLots[index]) || lot.min_price!==visibleLots[index].min_price)) render({keepMapView:true});
+  if (document.visibilityState!=='visible') return;
+  const now=Date.now(),previous=lastScheduleCheck;
+  lastScheduleCheck=now;
+  if (auctionItems.some(round=>bidPhase(round,previous)!==bidPhase(round,now))) {
+    lots=groupLots(auctionItems,now);
+    render({keepMapView:true});
+  }
 }
 setInterval(refreshScheduleTime,60000);
 document.addEventListener('visibilitychange',refreshScheduleTime);
-window.addEventListener('resize',()=>{if (map && (document.body.dataset.view!=='list' || !window.matchMedia('(max-width:640px)').matches)) {map.invalidateSize();drawMarkers();}});
+window.addEventListener('resize',()=>{if (map && (document.body.dataset.view!=='list' || !mobileLayout.matches)) {map.invalidateSize();if (mapNeedsFit) fitAll();else drawMarkers();}});
+if (!map) {
+  $('viewToggle').hidden=true;
+  if (mobileLayout.matches) setView('list');
+}
 load();

@@ -107,3 +107,21 @@ test('private contracts remain discoverable without treating old auction dates a
   assert.equal(matchesSchedule(lot,{from:'2026-01-01',to:'2026-01-01'},scheduleNow),false);
   assert.equal(matchesSchedule({...lot,status:'입찰준비중',bid_start:'',bid_end:''},{phase:'unknown'},scheduleNow),true);
 });
+
+test('an upcoming auction takes precedence over a retired or private-contract deadline',()=>{
+  const upcoming={...round,condition_id:'upcoming',bid_start:'202611171000',bid_end:'202611171700'};
+  const cancelled={...round,condition_id:'cancelled',status:'입찰취소'};
+  const privateContract={...round,condition_id:'private',status:'수의계약가능',bid_end:'202601011000'};
+  assert.equal(groupLots([cancelled,privateContract,upcoming],scheduleNow)[0].condition_id,'upcoming');
+  assert.equal(bidPhase({...privateContract,status:'수의계약 완료'},scheduleNow),'ended');
+});
+
+test('the price cap and schedule both apply before picking a matching round',()=>{
+  const first={...round,condition_id:'first'};
+  const later={...round,condition_id:'later',bid_start:'202611171000',bid_end:'202611171700',min_price:30000000};
+  const lots=groupLots([first,later],scheduleNow-1);
+  const matches=filterLotsBySchedule(lots,{phase:'upcoming',to:'2026-11-17'},scheduleNow-1,40000000);
+  assert.equal(matches[0].condition_id,'later');
+  assert.equal(matches[0].matching_round_count,1);
+  assert.deepEqual(filterLotsBySchedule(lots,{phase:'upcoming',to:'2026-11-16'},scheduleNow-1,40000000),[]);
+});
