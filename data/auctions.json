@@ -106,7 +106,7 @@
       "주택": 311
     }
   },
-  "updated": "2026-11-28T04:26:23.186244+00:00",
+  "updated": "2026-11-28T08:02:42.630351+00:00",
   "status": "partial_verified",
   "source": "KAMCO Onbid real-estate list API",
   "items": [
@@ -18917,8 +18917,8 @@
       "bid_end": "202701061700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.268208,
+      "lng": 127.0293802,
       "road": null,
       "water": null,
       "sewer": null,
@@ -18926,7 +18926,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -18983,8 +18985,8 @@
       "bid_end": "202612231700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.268208,
+      "lng": 127.0293802,
       "road": null,
       "water": null,
       "sewer": null,
@@ -18992,7 +18994,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19015,8 +19019,8 @@
       "bid_end": "202612161700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.29397,
+      "lng": 126.9574685,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19024,7 +19028,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19047,8 +19053,8 @@
       "bid_end": "202612161700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.268208,
+      "lng": 127.0293802,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19056,7 +19062,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19079,8 +19087,8 @@
       "bid_end": "202612091700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.29397,
+      "lng": 126.9574685,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19088,7 +19096,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19111,8 +19121,8 @@
       "bid_end": "202612091700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.268208,
+      "lng": 127.0293802,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19120,7 +19130,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19143,8 +19155,8 @@
       "bid_end": "202612021700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.29397,
+      "lng": 126.9574685,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19152,7 +19164,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19175,8 +19189,8 @@
       "bid_end": "202612021700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2548637,
+      "lng": 126.9925828,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19184,7 +19198,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -19207,8 +19223,8 @@
       "bid_end": "202612021700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.268208,
+      "lng": 127.0293802,
       "road": null,
       "water": null,
       "sewer": null,
@@ -19216,7 +19232,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -20307,8 +20325,8 @@
       "bid_end": "202612161700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2748819,
+      "lng": 126.8867512,
       "road": null,
       "water": null,
       "sewer": null,
@@ -20316,7 +20334,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -20727,8 +20747,8 @@
       "bid_end": "202612091700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2748819,
+      "lng": 126.8867512,
       "road": null,
       "water": null,
       "sewer": null,
@@ -20736,7 +20756,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -21183,8 +21205,8 @@
       "bid_end": "202612021700",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.2748819,
+      "lng": 126.8867512,
       "road": null,
       "water": null,
       "sewer": null,
@@ -21192,7 +21214,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "parcel_status": "provider_error",
+      "location_precision": "area",
+      "geocode_source": "OSM approximate locality (not property location)"
     },
     {
       "source": "온비드",
@@ -21760,15 +21784,15 @@
       "land_area": null,
       "building_area": 70.87,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4159133022107720000",
       "category": "부동산 주거용건물 다세대주택",
       "name": "경기도 화성시 만세구 서신면 상안리 772, C동 502호 매각",
       "bid_start": "202612021000",
       "bid_end": "202612021600",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.17065918180674,
+      "lng": 126.70460777815035,
       "road": null,
       "water": null,
       "sewer": null,
@@ -21776,7 +21800,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "location_precision": "parcel",
+      "geocode_source": "경기부동산포털 연속지적도",
+      "parcel_status": "verified"
     },
     {
       "source": "온비드",
@@ -21924,15 +21950,15 @@
       "land_area": null,
       "building_area": 70.87,
       "property_type": "주택",
-      "pnu": null,
+      "pnu": "4159133022107720000",
       "category": "부동산 주거용건물 다세대주택",
       "name": "경기도 화성시 만세구 서신면 상안리 772, C동 502호 매각",
       "bid_start": "202612011000",
       "bid_end": "202612011600",
       "status": "입찰준비중",
       "drive_min": null,
-      "lat": null,
-      "lng": null,
+      "lat": 37.17065918180674,
+      "lng": 126.70460777815035,
       "road": null,
       "water": null,
       "sewer": null,
@@ -21940,7 +21966,9 @@
       "sunlight": null,
       "legal": null,
       "url": null,
-      "parcel_status": "provider_error"
+      "location_precision": "parcel",
+      "geocode_source": "경기부동산포털 연속지적도",
+      "parcel_status": "verified"
     },
     {
       "source": "온비드",
@@ -23515,13 +23543,13 @@
   ],
   "parcels": {
     "status": "partial",
-    "checked_at": "2026-11-28T04:30:34.275022+00:00",
+    "checked_at": "2026-11-28T08:06:44.546716+00:00",
     "key_configured": true,
     "primary_provider": "경기부동산포털",
     "verified_parcels": 69,
-    "verified_items": 238,
-    "unresolved_items": 467,
-    "requests": 99,
+    "verified_items": 240,
+    "unresolved_items": 465,
+    "requests": 94,
     "deferred_items": 0,
     "errors": {
       "GYEONGGI_SEARCH_NETWORK_ERROR": 3,
@@ -23530,12 +23558,12 @@
     }
   },
   "enrichment": {
-    "geocoded": 421,
-    "parcel_geocoded": 238,
+    "geocoded": 435,
+    "parcel_geocoded": 240,
     "exact": 0,
-    "approximate": 183,
+    "approximate": 195,
     "routed": 0,
-    "unmatched": 284,
+    "unmatched": 270,
     "requests": 15,
     "provider": "경기부동산포털 / VWorld / OpenStreetMap Nominatim",
     "geocode_configured": true,
