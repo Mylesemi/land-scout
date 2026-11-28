@@ -71,6 +71,7 @@ const {bidTimestamp,bidPhase,groupLots,kstDate,validScheduleRange,filterLotsBySc
 const driveRoute=lot=>routeEstimate(lot,driveRoutes);
 const driveSeconds=lot=>driveRoute(lot)?.seconds ?? Infinity;
 const driveMinutes=route=>Math.max(1,Math.ceil(route.seconds/60))+'분';
+const routeTimeFormat=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 const defaultSchedule=()=>({phase:'all',basis:'end',from:'',to:''});
 let scheduleFilters=defaultSchedule();
 const phaseLabels={all:'전체',upcoming:'입찰 예정',active:'입찰 진행 중',private:'수의계약 가능',ended:'입찰 종료',unknown:'일정 미확인'};
@@ -342,7 +343,7 @@ function createCard(lot) {
     actions.append(copy);
   }
   const fields=[['물건번호',lot.lot_id],['면적 기준',lot.property_type==='주택' ? '건물 면적 · 지분 여부 확인' : '토지 면적 · 지분 여부 확인'],
-    ['예상 운전 시간',route ? '약 '+driveMinutes(route)+' · '+kstDate(Date.parse(route.checked_at))+' 계산 (힐스테이트서천 인근 도로 기준)' : lot.property_type==='토지' ? '미확인' : '토지 시범 적용 중'],
+    ['예상 운전 시간',route ? '약 '+driveMinutes(route)+' · '+routeTimeFormat.format(Date.parse(route.checked_at))+' 계산 (힐스테이트서천 인근 도로 기준)' : lot.property_type==='토지' ? '미확인' : '토지 시범 적용 중'],
     ['진입도로',lot.road],['상수도 / 하수도',(lot.water || '미확인')+' / '+(lot.sewer || '미확인')],['전력계통 / 일조',(lot.grid || '미확인')+' / '+(lot.sunlight || '미확인')]];
   const dl=card.querySelector('dl');
   fields.forEach(([label,value])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value ?? '미확인';dl.append(dt,dd);});
