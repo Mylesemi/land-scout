@@ -14,6 +14,8 @@ const areaText = value => Number.isFinite(Number(value)) && value != null && val
 const icon = name => '<svg class="icon" aria-hidden="true"><use href="#icon-' + name + '"/></svg>';
 let scope = 'all', saved = new Set(), toastTimer, priceCap=100000000, mapNeedsFit=false, searchBounds=null;
 const mobileLayout=window.matchMedia('(max-width:640px)');
+const BASE_ROAD=[37.238128,127.075942];
+let driveOnly=false, driveRoutes={};
 try {
   const values = JSON.parse(localStorage.getItem('land-scout-saved') || '[]');
   if (Array.isArray(values)) saved = new Set(values.filter(v=>typeof v==='string'));
@@ -37,9 +39,10 @@ function updatePreview() {
   $('mobilePreview').hidden=!lot;
   $('map').closest('.map-panel').classList.toggle('has-preview',Boolean(lot));
   if (!lot) return;
+  const route=driveRoute(lot);
   $('mobilePreview').querySelector('.preview-eyebrow').textContent=(lot.property_type || '공매')+' · '+locationLabel[locationType(lot)];
   $('previewPrice').textContent=compactMoney(lot.min_price);
-  $('previewAddress').textContent=shortAddress(lot);
+  $('previewAddress').textContent=(route ? '차량 약 '+driveMinutes(route)+' · ' : '')+shortAddress(lot);
 }
 function revealCard(key) {
   const index=visibleLots.findIndex(lot=>recordKey(lot)===key);
@@ -64,7 +67,10 @@ const point = lot => {
   const lat = Number(lot.lat), lng = Number(lot.lng);
   return Number.isFinite(lat) && Number.isFinite(lng) && lat >= 33 && lat <= 39.5 && lng >= 124 && lng <= 132 ? [lat, lng] : null;
 };
-const {bidTimestamp,bidPhase,groupLots,kstDate,validScheduleRange,filterLotsBySchedule} = LandScoutData;
+const {bidTimestamp,bidPhase,groupLots,kstDate,validScheduleRange,filterLotsBySchedule,routeEstimate} = LandScoutData;
+const driveRoute=lot=>routeEstimate(lot,driveRoutes);
+const driveSeconds=lot=>driveRoute(lot)?.seconds ?? Infinity;
+const driveMinutes=route=>Math.max(1,Math.ceil(route.seconds/60))+'분';
 const defaultSchedule=()=>({phase:'all',basis:'end',from:'',to:''});
 let scheduleFilters=defaultSchedule();
 const phaseLabels={all:'전체',upcoming:'입찰 예정',active:'입찰 진행 중',private:'수의계약 가능',ended:'입찰 종료',unknown:'일정 미확인'};
@@ -96,7 +102,7 @@ const PAGE_SIZE = 24;
 
 if (window.L) {
   try {
-    map = L.map('map', {scrollWheelZoom:true,zoomControl:false}).setView([37.237,127.072],10);
+    map = L.map('map', {scrollWheelZoom:true,zoomControl:false}).setView(BASE_ROAD,10);
     const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxNativeZoom:19,maxZoom:21, attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     });
@@ -110,7 +116,7 @@ if (window.L) {
     markerLayer = L.layerGroup().addTo(map);
     L.control.zoom({position:'topright'}).addTo(map);
     map.on('zoomend',drawMarkers);
-    L.circleMarker([37.237,127.072], {radius:5,color:'#6f7f9b',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(map).bindPopup('서천동 근사 기준점 · 출입구 위치 미확인');
+    L.circleMarker(BASE_ROAD, {radius:5,color:'#6f7f9b',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(map).bindPopup('출발 기준 · 힐스테이트서천 인근 도로');
   } catch (error) {
     map = null;
   }
@@ -130,10 +136,10 @@ function inSearchArea(lot) {
 
 function chooseRows() {
   const query = $('search').value.trim().toLocaleLowerCase('ko-KR');
-  const kind = $('kind').value, precision = $('location').value;
+  const kind = $('kind').value, precision = $('location').value, sort=$('sort').value;
   const now=Date.now();
   const rows = filterLotsBySchedule(lots,scheduleFilters,now,priceCap).filter(lot => lot.min_price <= priceCap &&
-    inSearchArea(lot) &&
+    inSearchArea(lot) && (!driveOnly || driveSeconds(lot)<=1800) &&
     (kind === 'all' || lot.property_type === kind) &&
     (precision === 'all' || precision === 'exact' && ['exact','parcel'].includes(locationType(lot)) || precision === locationType(lot)) &&
     (!$('excludeShares').checked || !lot.share) &&
@@ -149,8 +155,9 @@ function chooseRows() {
     return Infinity;
   };
   return rows.sort((a,b) => {
-    if ($('sort').value === 'closing') return deadline(a)-deadline(b) || a.min_price-b.min_price;
-    if ($('sort').value === 'price') return a.min_price - b.min_price;
+    if (sort === 'closing') return deadline(a)-deadline(b) || a.min_price-b.min_price;
+    if (sort === 'price') return a.min_price - b.min_price;
+    if (sort === 'drive') return driveSeconds(a)-driveSeconds(b) || a.min_price-b.min_price;
     return ranks[locationType(a)] - ranks[locationType(b)] || a.min_price - b.min_price;
   });
 }
@@ -289,6 +296,7 @@ function compactSchedule(lot) {
 }
 function createCard(lot) {
   const type=locationType(lot),key=recordKey(lot),[schedule,status]=compactSchedule(lot);
+  const route=driveRoute(lot);
   const naverMapURL='https://map.naver.com/p/search/'+encodeURIComponent(lot.address);
   const canFocus=type!=='unknown' && Boolean(map);
   const mapAction=canFocus
@@ -300,7 +308,7 @@ function createCard(lot) {
   card.innerHTML='<div class="lot-top"><span class="property-kind">'+esc(lot.property_type || '공매')+'<em>·</em>'+esc(category || '종류 미확인')+'</span><button class="favorite-button" type="button" aria-label="'+esc(shortAddress(lot))+' 관심 매물 '+(savedLot(lot) ? '해제' : '저장')+'" aria-pressed="'+savedLot(lot)+'">'+icon('heart')+'</button></div>'+
     '<div class="price-row"><strong class="price" title="'+money(lot.min_price)+'">'+compactMoney(lot.min_price)+'</strong><span class="price-label">'+(lot.matching_round_count ? '선택 일정 입찰가' : '최저입찰가')+'</span></div>'+
     '<h3>'+esc(shortAddress(lot))+'</h3><p class="property-meta"><b>'+esc(areaText(lot.area))+'</b> · '+(lot.property_type==='주택' ? '건물 면적' : '토지 면적')+'</p>'+
-    '<div class="badges"><span class="badge '+type+'">'+locationLabel[type]+'</span>'+(lot.share ? '<span class="badge share">지분 매각</span>' : '')+(lot.multiple_parcels ? '<span class="badge">여러 필지 · 대표 경계</span>' : '')+'</div>'+
+    '<div class="badges"><span class="badge '+type+'">'+locationLabel[type]+'</span>'+(route ? '<span class="badge drive-badge">차량 약 '+driveMinutes(route)+'</span>' : '')+(lot.share ? '<span class="badge share">지분 매각</span>' : '')+(lot.multiple_parcels ? '<span class="badge">여러 필지 · 대표 경계</span>' : '')+'</div>'+
     '<div class="card-bottom"><p class="schedule"><b>'+esc(schedule)+'</b>'+esc(status)+'</p>'+mapAction+'</div>'+
     '<details class="lot-details"><summary>입찰·상세 정보</summary><div class="lot-details-content"><p class="full-name">'+esc(lot.name || lot.address)+'</p><p class="schedule-full">표시 일정의 최저입찰가 <b>'+money(lot.min_price)+'</b><br>시작 '+fmtBid(lot.bid_start)+'<br>종료 '+fmtBid(lot.bid_end)+'</p><div class="lot-actions"></div><dl></dl></div></details>';
   card.querySelector('.favorite-button').addEventListener('click',()=>toggleSaved(lot));
@@ -333,7 +341,9 @@ function createCard(lot) {
     });
     actions.append(copy);
   }
-  const fields=[['물건번호',lot.lot_id],['면적 기준',lot.property_type==='주택' ? '건물 면적 · 지분 여부 확인' : '토지 면적 · 지분 여부 확인'],['실주행 시간',lot.drive_min==null ? '미확인' : lot.drive_min+'분'],['진입도로',lot.road],['상수도 / 하수도',(lot.water || '미확인')+' / '+(lot.sewer || '미확인')],['전력계통 / 일조',(lot.grid || '미확인')+' / '+(lot.sunlight || '미확인')]];
+  const fields=[['물건번호',lot.lot_id],['면적 기준',lot.property_type==='주택' ? '건물 면적 · 지분 여부 확인' : '토지 면적 · 지분 여부 확인'],
+    ['예상 운전 시간',route ? '약 '+driveMinutes(route)+' · '+kstDate(Date.parse(route.checked_at))+' 계산 (힐스테이트서천 인근 도로 기준)' : lot.property_type==='토지' ? '미확인' : '토지 시범 적용 중'],
+    ['진입도로',lot.road],['상수도 / 하수도',(lot.water || '미확인')+' / '+(lot.sewer || '미확인')],['전력계통 / 일조',(lot.grid || '미확인')+' / '+(lot.sunlight || '미확인')]];
   const dl=card.querySelector('dl');
   fields.forEach(([label,value])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value ?? '미확인';dl.append(dt,dd);});
   return card;
@@ -351,7 +361,8 @@ function render({preserveMap=false,keepMapView=false}={}) {
   $('savedTabCount').textContent=filtered.filter(savedLot).length; $('savedCount').textContent=savedCount;
   $('mobileCount').textContent=visibleLots.length;
   $('scopeLabel').textContent={all:'전체 매물',mapped:'지도에 표시된 매물',saved:'관심 매물'}[scope];
-  $('listHint').textContent=searchBounds ? '지정한 지도 범위에서 '+filtered.length+'건' : scope==='saved' ? '관심 매물은 이 브라우저에 저장돼요.' : '전체 '+filtered.length+'건 중 지도 '+mapped+'건 · 위치 미확인 매물은 목록에서 확인';
+  $('listHint').textContent=driveOnly ? '힐스테이트서천 기준 차량 30분 이내'+(searchBounds ? ' · 지정한 지도 범위' : '') : searchBounds ? '지정한 지도 범위에서 '+filtered.length+'건' : scope==='saved' ? '관심 매물은 이 브라우저에 저장돼요.' : '전체 '+filtered.length+'건 중 지도 '+mapped+'건 · 위치 미확인 매물은 목록에서 확인';
+  $('driveFilter').setAttribute('aria-pressed',String(driveOnly));
   document.querySelectorAll('[data-clear-area]').forEach(button=>{button.hidden=!searchBounds;});
   $('searchArea').classList.toggle('active',Boolean(searchBounds));
   $('savedButton').setAttribute('aria-pressed',String(scope==='saved'));
@@ -366,7 +377,7 @@ function render({preserveMap=false,keepMapView=false}={}) {
   if (!visibleLots.length) {
     const message=document.createElement('div');message.className='empty';
     const title=loading ? '매물을 불러오고 있어요.' : loadFailed && !lots.length ? '데이터를 불러오지 못했어요.' : scope==='saved' && !savedCount ? '마음에 드는 매물을 모아보세요.' : '조건에 맞는 매물이 없어요.';
-    const copy=scope==='saved' && !savedCount ? '매물의 하트를 누르면 여기에 저장돼요.' : loadFailed && !lots.length ? '수집 현황에서 새로고침해 주세요.' : '검색어나 필터를 조금 바꿔보세요.';
+    const copy=scope==='saved' && !savedCount ? '매물의 하트를 누르면 여기에 저장돼요.' : loadFailed && !lots.length ? '수집 현황에서 새로고침해 주세요.' : driveOnly ? '예상 시간이 계산된 토지만 차량 30분 필터에 표시돼요.' : '검색어나 필터를 조금 바꿔보세요.';
     message.innerHTML=icon(scope==='saved' ? 'heart' : 'search')+'<strong>'+title+'</strong>'+copy;
     if (lots.length) {
       const reset=document.createElement('button');reset.type='button';
@@ -388,7 +399,7 @@ function render({preserveMap=false,keepMapView=false}={}) {
 function resetFilters() {
   $('search').value=''; priceCap=100000000; $('kind').value='all';
   $('location').value='all'; $('sort').value='location'; $('excludeShares').checked=false;
-  scheduleFilters=defaultSchedule();searchBounds=null;scope='all';selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
+  scheduleFilters=defaultSchedule();driveOnly=false;searchBounds=null;scope='all';selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
 }
 function clearSearchArea() {
   searchBounds=null;selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
@@ -428,13 +439,21 @@ function updateSummary() {
   else if (!count) parcelText='아직 대조가 완료된 필지 경계가 없습니다. 노란 마커는 지역 참고 위치입니다.';
   $('parcelStatus').textContent=parcelText;
   $('parcelStatus').className='muted' + (report?.status==='provider_error' || parcelLoadFailed ? ' warn' : '');
-  const routed=lots.filter(lot=>Number.isFinite(lot.drive_min) && lot.drive_min>=0).length;
-  $('geoStatus').textContent='서천 힐스테이트 기준 실주행 시간 ' + routed + '/' + lots.length + '건 확인. ' + (routed ? '미확인 물건은 30분 이내로 판정하지 않습니다.' : '차량 30분 이내 여부는 아직 미확인입니다.');
+  const routing=lots.filter(lot=>driveRoute(lot));
+  $('geoStatus').textContent='토지 '+lots.filter(lot=>lot.property_type==='토지').length+'건 중 '+routing.length+'건에 예상 운전 시간이 있습니다. 30분 이내 '+routing.filter(lot=>driveSeconds(lot)<=1800).length+'건.';
+  const focus=Object.entries(currentData?.collection?.focus_regions || {});
+  $('focusCoverage').hidden=!focus.length;
+  $('focusSummary').replaceChildren(...focus.map(([city,info])=>{
+    const item=document.createElement('li');
+    item.textContent=city+' '+info.lots+'건 (지역별 추가 조회 +'+info.added_lots+'건) · '+(info.complete ? '설정한 조회 범위 확인 완료' : '일부 조회');
+    return item;
+  }));
 }
 async function load() {
   if (loading) return;
   loading=true; $('refresh').disabled=true; $('refresh').textContent='확인 중…';
-  const [auctions,parcels]=await Promise.allSettled([readJSON('./data/auctions.json'),readJSON('./data/parcels.geojson')]);
+  const [auctions,parcels,driving]=await Promise.allSettled([readJSON('./data/auctions.json'),readJSON('./data/parcels.geojson'),readJSON('./data/driving.json')]);
+  if (driving.status==='fulfilled' && driving.value?.routes && typeof driving.value.routes==='object') driveRoutes=driving.value.routes;
   if (auctions.status==='fulfilled' && Array.isArray(auctions.value?.items)) {
     currentData=auctions.value;
     auctionItems=currentData.items.filter(lot=>lot && lot.address && Number.isFinite(lot.min_price) && lot.min_price>0 && lot.min_price<=100000000);
@@ -466,13 +485,16 @@ async function load() {
 document.querySelector('.skip-link').addEventListener('click',event=>{event.preventDefault();setView('list');$('resultsHeading').focus();});
 $('refresh').addEventListener('click',load);
 $('reset').addEventListener('click',resetFilters);
+$('driveFilter').addEventListener('click',()=>{
+  driveOnly=!driveOnly;selectedKey=null;page=1;render();$('listScroll').scrollTop=0;
+});
 $('fitAll').addEventListener('click',()=>{if (searchBounds) clearSearchArea();else {selectedKey=null;updateSelection();fitAll();}});
 $('searchArea').addEventListener('click',()=>{
   searchBounds=map.getBounds();selectedKey=null;page=1;map.closePopup();
   render({keepMapView:true});$('listScroll').scrollTop=0;
 });
 document.querySelectorAll('[data-clear-area]').forEach(button=>button.addEventListener('click',clearSearchArea));
-$('baseLocation').addEventListener('click',()=>{if (map) {map.setView([37.237,127.072],13,{animate:false});$('mapNotice').textContent='서천동 근사 기준점 · 출입구 위치와 실주행 시간은 미확인';}});
+$('baseLocation').addEventListener('click',()=>{if (map) {map.setView(BASE_ROAD,15,{animate:false});$('mapNotice').textContent='출발 기준 · 힐스테이트서천 인근 도로';}});
 $('previous').addEventListener('click',()=>{page=Math.max(1,page-1);render({preserveMap:true});$('listScroll').scrollTop=0;});
 $('next').addEventListener('click',()=>{page+=1;render({preserveMap:true});$('listScroll').scrollTop=0;});
 let searchTimer;

@@ -75,7 +75,17 @@
       return {...chosen,...(located?{pnu:located.pnu,lat:located.lat,lng:located.lng,location_precision:located.location_precision}:{}),rounds:eligible};
     });
   }
-  const api={bidTimestamp,groupLots,kstDate,validScheduleRange,bidPhase,matchesSchedule,filterLotsBySchedule};
+  function routeEstimate(lot,routes,now=Date.now()) {
+    if (lot.property_type!=='토지' || lot.multiple_parcels || lot.location_precision!=='parcel') return null;
+    const entry=Object.hasOwn(routes,lot.pnu) ? routes[lot.pnu] : null;
+    if (!entry || !Number.isInteger(entry.seconds) || entry.seconds<0 ||
+        !Array.isArray(entry.point) || entry.point.length!==2 || !entry.point.every(Number.isFinite) ||
+        !Number.isFinite(lot.lat) || !Number.isFinite(lot.lng) ||
+        Math.abs(entry.point[0]-lot.lat)>0.000001 || Math.abs(entry.point[1]-lot.lng)>0.000001) return null;
+    const age=now-Date.parse(entry.checked_at);
+    return Number.isFinite(age) && age>=0 && age<=30*DAY ? entry : null;
+  }
+  const api={bidTimestamp,groupLots,kstDate,validScheduleRange,bidPhase,matchesSchedule,filterLotsBySchedule,routeEstimate};
   if (typeof module!=='undefined' && module.exports) module.exports=api;
   else root.LandScoutData=api;
 })(typeof window==='undefined'?globalThis:window);

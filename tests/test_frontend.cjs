@@ -125,3 +125,16 @@ test('the price cap and schedule both apply before picking a matching round',()=
   assert.equal(matches[0].matching_round_count,1);
   assert.deepEqual(filterLotsBySchedule(lots,{phase:'upcoming',to:'2026-11-16'},scheduleNow-1,40000000),[]);
 });
+
+test('driving estimates only match current verified single-parcel land coordinates',()=>{
+  const {routeEstimate}=require('../app-data.js');
+  const pnu='4146311000108010000', point=[37.238128,127.075942];
+  const routes={[pnu]:{seconds:1800,point,checked_at:'2026-11-15T00:00:00Z'}};
+  const lot={pnu,property_type:'토지',location_precision:'parcel',lat:point[0],lng:point[1]+0.0000004};
+  assert.equal(routeEstimate(lot,routes,now)?.seconds,1800);
+  for (const change of [{location_precision:'area'},{lng:127.5},{multiple_parcels:true},{property_type:'주택'}]) {
+    assert.equal(routeEstimate({...lot,...change},routes,now),null);
+  }
+  assert.equal(routeEstimate(lot,routes,now+31*86400000),null);
+  assert.equal(routeEstimate(lot,{[pnu]:{...routes[pnu],seconds:null}},now),null);
+});

@@ -2081,6 +2081,11 @@ svg.icon {
   background:var(--soft);
   border-color:#cdd7ff;
 }
+.drive-filter[aria-pressed=true],.drive-badge {
+  color:#12665e;
+  background:#e8f7f2;
+  border-color:#b0dfd1;
+}
 .schedule-dialog {width:460px}
 .schedule-field {
   display:flex;

@@ -15,10 +15,10 @@
   gtag('config', 'G-CVFCN7ZP28');
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="./styles.css?v=20261128">
+<link rel="stylesheet" href="./styles.css?v=20261128-drive">
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script defer src="./app-data.js?v=20261128"></script>
-<script defer src="./app.js?v=20261128"></script>
+<script defer src="./app-data.js?v=20261128-drive"></script>
+<script defer src="./app.js?v=20261128-drive"></script>
 </head>
 <body data-view="map">
 <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -42,6 +42,7 @@
 <nav class="filter-bar" aria-label="매물 검색 조건">
   <span class="market-label">온비드 매각 <span class="live-dot" aria-hidden="true"></span></span>
   <div class="filter-scroll">
+    <button id="driveFilter" class="filter-pill drive-filter" type="button" aria-pressed="false" title="힐스테이트서천 인근 도로부터 예상 운전 30분 이내">차량 30분</button>
     <label class="filter-select"><span class="sr-only">매물 종류</span><select id="kind"><option value="all">토지 + 주택</option><option value="토지">토지</option><option value="주택">주택</option></select></label>
     <button id="filterButton" class="filter-pill" type="button" aria-controls="filterDialog"><span id="priceFilterLabel">1억원 이하</span><svg class="icon" aria-hidden="true"><use href="#icon-filter"/></svg></button>
     <button id="scheduleButton" class="filter-pill schedule-pill" type="button" aria-controls="scheduleDialog" aria-haspopup="dialog"><svg class="icon" aria-hidden="true"><use href="#icon-calendar"/></svg><span id="scheduleFilterLabel">입찰 일정</span></button>
@@ -55,7 +56,7 @@
   <section class="results-panel" aria-labelledby="resultsHeading">
     <div class="results-top">
       <div class="results-kicker"><span>경기도</span><svg class="icon" aria-hidden="true"><use href="#icon-chevron"/></svg><span id="scopeLabel">전체 매물</span></div>
-      <div class="results-title"><h1 id="resultsHeading" tabindex="-1">발견한 매물 <span id="count">—</span></h1><label class="sort-select"><span class="sr-only">매물 정렬</span><select id="sort"><option value="location">위치 확인순</option><option value="price">낮은 가격순</option><option value="closing">입찰 종료순</option></select></label></div>
+      <div class="results-title"><h1 id="resultsHeading" tabindex="-1">발견한 매물 <span id="count">—</span></h1><label class="sort-select"><span class="sr-only">매물 정렬</span><select id="sort"><option value="location">위치 확인순</option><option value="price">낮은 가격순</option><option value="closing">입찰 종료순</option><option value="drive">운전 시간 짧은순</option></select></label></div>
       <p class="results-subtitle" id="listHint">가격과 위치를 함께 비교해 보세요.</p>
       <button class="list-area-clear" type="button" data-clear-area hidden>지도 범위 해제 <svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button>
       <div class="list-tabs" aria-label="매물 목록 범위"><button type="button" class="active" data-scope="all" aria-pressed="true">전체 <span id="allCount">—</span></button><button type="button" data-scope="mapped" aria-pressed="false">지도에 표시 <span id="mappedCount">—</span></button><button type="button" data-scope="saved" aria-pressed="false">관심 <span id="savedTabCount">0</span></button></div>
@@ -67,7 +68,7 @@
     <h2 id="mapHeading" class="sr-only">공매 매물 지도</h2>
     <div id="map" aria-label="공매 물건 위치 지도"></div>
     <div class="map-context"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>경기도 <b>공매 지도</b></span><span class="context-divider"></span><span id="mapCount">위치 확인 중</span></div>
-    <div class="map-tools"><button id="fitAll" type="button" title="검색 결과 전체 보기"><svg class="icon" aria-hidden="true"><use href="#icon-map"/></svg><span>전체 보기</span></button><button id="baseLocation" type="button" title="서천동 근사 기준점으로 이동"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>기준지</span></button></div>
+    <div class="map-tools"><button id="fitAll" type="button" title="검색 결과 전체 보기"><svg class="icon" aria-hidden="true"><use href="#icon-map"/></svg><span>전체 보기</span></button><button id="baseLocation" type="button" title="힐스테이트서천 인근 도로로 이동"><svg class="icon" aria-hidden="true"><use href="#icon-pin"/></svg><span>기준지</span></button></div>
     <div class="map-search" id="mapSearch" hidden><button id="searchArea" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>이 지도에서 찾기</button><button type="button" data-clear-area hidden>범위 해제</button></div>
     <div class="map-legend"><span><i class="key parcel"></i>필지 경계</span><span><i class="key exact"></i>지번 위치</span><span><i class="key area"></i>지역 참고 포함</span><button id="legendInfo" type="button" aria-label="경계·위치 정보 안내 열기">?</button></div>
     <p class="map-notice" id="mapNotice" role="status">지도를 준비하고 있어요.</p>
@@ -103,7 +104,8 @@
   <div class="dialog-head"><div><span class="dialog-kicker">LAND SCOUT</span><h2 id="infoTitle">데이터·이용 안내</h2></div><button type="button" class="icon-button" data-close aria-label="이용 안내 닫기"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
   <div class="info-scroll"><section class="summary" aria-label="수집 현황"><p id="syncStatus" role="status">데이터를 확인하고 있습니다.</p><div class="stats"><div><span>매각 후보</span><strong id="statLots">—</strong></div><div><span>필지 확인</span><strong id="statParcels">—</strong></div><div><span>지역 참고</span><strong id="statAreas">—</strong></div><div><span>위치 미확인</span><strong id="statUnknown">—</strong></div></div><p id="parcelStatus"></p><button id="refresh" type="button" class="secondary">데이터 새로고침 ↻</button></section>
   <section><h3>지도는 이렇게 읽으세요</h3><p>‘이 지도에서 찾기’를 누르면 화면에 보이는 지도 범위로 매물을 좁힙니다. 범위를 바꾸려면 지도를 옮긴 뒤 버튼을 다시 누르세요.</p><p>가까운 매물은 가격 마커 하나로 묶이며, 확대하면 펼쳐집니다. 파란 마커는 지번 위치가 확인된 매물, 주황색 점선 마커는 동·리의 참고 위치를 포함한 매물입니다. 참고 위치는 실제 매물 위치를 뜻하지 않습니다.</p><p>청록색 구획은 공식 연속지적도와 지번을 대조한 필지입니다. 지분 매각은 필지 전체 중 일부 지분을 매각하며, 여러 필지는 확인된 대표 필지 경계를 표시합니다. 연속지적도는 측량 경계 확인용으로 사용할 수 없습니다.</p></section>
-  <section><h3>차량 30분·토지 활용 조건</h3><p id="geoStatus">서천 힐스테이트 기준 실주행 시간은 아직 미확인입니다.</p><p>도로, 상하수도, 일조량, 전력계통 연계와 용도지역은 개별 확인이 필요합니다.</p></section>
+  <section id="focusCoverage" hidden><h3>관심 지역 수집 현황</h3><ul id="focusSummary"></ul><p>시·군·구별로 조회한 결과를 경기도 전체 수집분에 합쳤습니다. 매물 수는 물건번호 기준입니다.</p></section>
+  <section><h3>차량 30분·토지 활용 조건</h3><p id="geoStatus">예상 운전 시간을 확인하고 있습니다.</p><p>힐스테이트서천 인근 도로에서 확인된 단일 필지의 가까운 도로까지 계산한 시간입니다. 실시간 교통과 실제 필지 진입로는 별도 확인이 필요합니다.</p><p><a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener noreferrer">경로 계산 FOSSGIS OSRM</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap 기여자</a> · <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener noreferrer">지도 수정</a></p><p>상하수도, 일조량, 전력계통 연계와 용도지역은 개별 확인이 필요합니다.</p></section>
   <section><h3>입찰 전 원문 확인</h3><p>가격은 표시된 입찰 일정의 최저입찰가입니다. 지분 비율, 권리관계, 공매 공고와 입찰 조건을 온비드에서 확인하세요.</p><a href="https://www.onbid.co.kr/" target="_blank" rel="noopener noreferrer">온비드 바로가기 ↗</a></section>
   <footer>온비드 공식 API · 경기부동산포털·VWorld 연속지적도<br>지도 © OpenStreetMap contributors</footer></div>
 </dialog>

@@ -1,23 +1,13 @@
 """Offline regression tests for the collector's parsing and conservative filters."""
-import ast
 import json
 import unittest
-import xml.etree.ElementTree as ET
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from location_utils import candidate_pnu, parcel_address
-
-source = Path("scripts/sync_onbid.py").read_text(encoding="utf-8")
-tree = ast.parse(source)
-functions = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in ("parse_response", "extract", "normalize", "price_number", "area_number")]
-namespace = {"json": json, "ET": ET, "re": __import__("re"), "candidate_pnu": candidate_pnu, "parcel_address": parcel_address, "rejection_counts": {"missing_identifier": 0, "missing_price_or_area": 0, "not_land": 0, "not_gyeonggi": 0, "over_budget": 0, "not_sale": 0}}
-exec(compile(ast.Module(body=functions, type_ignores=[]), "<collector-functions>", "exec"), namespace)
+import sync_onbid
+namespace = vars(sync_onbid)
 
 class CollectorTests(unittest.TestCase):
-    def test_syntax(self):
-        self.assertTrue(tree.body)
-
     def test_xml_no_data(self):
         code, msg, payload, fmt = namespace["parse_response"](b"<result><resultCode>03</resultCode><resultMsg>NODATA_ERROR</resultMsg></result>")
         self.assertEqual((code, fmt), ("03", "xml"))
@@ -83,6 +73,33 @@ class CollectorTests(unittest.TestCase):
         self.assertIsNone(namespace["price_number"]("약 5천만원"))
         self.assertIsNone(namespace["price_number"]("-100"))
         self.assertEqual(namespace["price_number"]("10,000,000"), 10000000)
+
+    def test_scoped_query_adds_lots_deduplicates_rounds_and_rejects_wrong_city(self):
+        base = {"dspsMthodCd": "0001", "landSqms": "100", "lowstBidPrcIndctCont": "90000000",
+                "cltrUsgLclsCtgrNm": "토지", "lctnSdnm": "경기도"}
+        original = dict(base, cltrMngNo="lot1", onbidCltrNm="경기도 용인시 기흥구 서천동 100")
+        local = dict(base, cltrMngNo="lot2", onbidCltrNm="경기도 용인시 기흥구 서천동 101")
+        wrong_city = dict(base, cltrMngNo="lot3", onbidCltrNm="경기도 고양시 일산동구 식사동 100")
+
+        def fetch(mode, page, district):
+            if mode == "Y":
+                return "03", "", {}, "json"
+            items = [original, local, wrong_city] if district else [original]
+            return "00", "", {"body": {"items": items}}, "json"
+
+        rows, report = sync_onbid.collect(fetch, 4, 2, 8, {"용인시": ("용인시 기흥구",)})
+        self.assertEqual({row["lot_id"] for row in rows}, {"lot1", "lot2"})
+        self.assertEqual(report["focus_regions"]["용인시"]["added_lots"], 1)
+        self.assertFalse(report["partial"])
+
+    def test_exhausting_budget_keeps_unchecked_regions_partial(self):
+        def fetch(mode, page, district):
+            return "03", "", {}, "json"
+
+        rows, report = sync_onbid.collect(fetch, 4, 2, 2, {"용인시": ("용인시 기흥구",)})
+        self.assertEqual(rows, [])
+        self.assertTrue(report["partial"])
+        self.assertFalse(report["focus_regions"]["용인시"]["complete"])
 
 if __name__ == "__main__":
     unittest.main()

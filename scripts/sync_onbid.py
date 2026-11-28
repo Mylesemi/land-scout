@@ -7,13 +7,15 @@ from location_utils import candidate_pnu, parcel_address
 
 BASE = "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2"
 DEST = Path("data/auctions.json")
-key = os.getenv("DATA_GO_KR_API_KEY", "").strip()
-if not key:
-    sys.exit("Missing DATA_GO_KR_API_KEY")
-endpoint = os.getenv("ONBID_LIST_ENDPOINT", "").strip() or BASE
-parsed = urllib.parse.urlparse(endpoint)
-if parsed.scheme != "https" or parsed.hostname != "apis.data.go.kr":
-    sys.exit("Only official apis.data.go.kr HTTPS endpoints are allowed")
+PAGE_SIZE = 100
+FOCUS_REGIONS = {
+    "용인시": ("용인시", "용인시 기흥구", "용인시 수지구", "용인시 처인구"),
+    "수원시": ("수원시", "수원시 영통구", "수원시 권선구", "수원시 팔달구", "수원시 장안구"),
+    "화성시": ("화성시", "화성시 동탄구", "화성시 병점구", "화성시 효행구", "화성시 만세구"),
+    "오산시": ("오산시",),
+}
+REJECTIONS = ("missing_identifier", "missing_price_or_area", "not_land", "not_gyeonggi", "over_budget", "not_sale")
+rejection_counts = dict.fromkeys(REJECTIONS, 0)
 
 def parse_response(raw):
     try:
@@ -47,10 +49,12 @@ def extract(payload, fmt):
         items = [items]
     return items if isinstance(items, list) else []
 
-def request(prpt, pvct, page):
-    params = {"serviceKey": key, "pageNo": str(page), "numOfRows": "100",
+def request(endpoint, key, prpt, pvct, page, district):
+    params = {"serviceKey": key, "pageNo": str(page), "numOfRows": str(PAGE_SIZE),
               "prptDivCd": prpt, "pvctTrgtYn": pvct, "resultType": "json",
               "dspsMthodCd": "0001", "lctnSdnm": "경기도", "lowstBidPrcEnd": "100000000"}
+    if district:
+        params["lctnSggnm"] = district
     url = endpoint + ("&" if "?" in endpoint else "?") + urllib.parse.urlencode(params)
     try:
         for attempt in range(3):
@@ -154,75 +158,117 @@ def normalize(row):
             "road": None, "water": None, "sewer": None, "grid": None,
             "sunlight": None, "legal": None, "url": (row.get("urlAdr") if str(row.get("urlAdr") or "").startswith("https://") else None)}
 
-# The official operation supports comma-separated property codes. Apply the
-# region, sale and budget constraints server-side before paginating.
-codes = [",".join(x.strip() for x in os.getenv("ONBID_PROPERTY_CODES", "0007,0010,0005,0002,0003,0006,0008,0011,0013").split(",") if re.fullmatch(r"\d{4}", x.strip()))]
-max_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "4")), 1), 20)
-request_budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "8")), 1), 100)
-requests_used = 0
-records = {}
-had_items = False
-successful = 0
-incomplete = False
-throttle_hit = False
-seen_field_sets = set()
-rejection_counts = {"missing_identifier":0,"missing_price_or_area":0,"not_land":0,"not_gyeonggi":0,"over_budget":0,"not_sale":0}
-for code in codes:
-    for pvct in ("N", "Y"):
-        for page in range(1, max_pages + 1):
-            if requests_used >= request_budget:
-                incomplete = True
-                break
-            try:
-                result, message, payload, fmt = request(code, pvct, page)
-            except RuntimeError as exc:
-                if "HTTP 429" in str(exc) or "Network error" in str(exc):
-                    if not had_items:
-                        raise
-                    print("Provider temporarily unavailable; publishing verified matches from completed pages only. Cause:", str(exc), flush=True)
-                    incomplete = True
-                    throttle_hit = True
-                    break
-                raise
-            requests_used += 1
-            time.sleep(0.25)
-            print(f"property_code={code} private_contract={pvct} page={page} api_code={result} message={message}")
-            if result == "03":
-                break
-            if result not in ("00", "0"):
-                raise RuntimeError(f"Provider rejected query: {result} {message}")
-            successful += 1
-            items = extract(payload, fmt)
-            if not items:
-                raise RuntimeError("API success envelope contained no recognized items; refusing silent schema mismatch")
-            had_items = True
-            if isinstance(items[0], dict):
-                fields = tuple(sorted(items[0].keys()))
-                if fields not in seen_field_sets:
-                    seen_field_sets.add(fields)
-                    print("Response item field names (no values):", ",".join(fields)[:1800])
-            for item in items:
-                row = normalize(item)
-                if row:
-                    records[row["lot_id"] + ":" + row["condition_id"]] = row
-            if len(items) < 100:
-                break
-            if page == max_pages and len(items) == 100:
-                incomplete = True
-        if requests_used >= request_budget or incomplete and throttle_hit:
-            break
-    if requests_used >= request_budget or incomplete and throttle_hit:
-        break
+def matches_district(row, district):
+    return row["address"].split()[1:1 + len(district.split())] == district.split()
 
-print("Filter rejection counts:", json.dumps(rejection_counts, ensure_ascii=False))
-print("Matched property types:", json.dumps({"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, ensure_ascii=False))
-if incomplete:
-    print("Collection is partial due to pagination/request budget or provider throttling; only confirmed matching items will be published.")
-if not had_items and successful:
-    print("No recognizable API items; existing snapshot preserved. Verify API quota and key status.", file=sys.stderr)
-    sys.exit(2)
-DEST.parent.mkdir(parents=True, exist_ok=True)
-snapshot = {"collection": {"requests": requests_used, "successful_pages": successful, "partial": incomplete, "matched_by_type": {"토지": sum(x["property_type"] == "토지" for x in records.values()), "주택": sum(x["property_type"] == "주택" for x in records.values())}, "rejected": rejection_counts}, "updated": datetime.now(timezone.utc).isoformat(), "status": "partial_verified" if incomplete else "verified_filtered",
-            "source": "KAMCO Onbid real-estate list API", "items": list(records.values())}
-DEST.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print(f"Published {len(records)} conservatively filtered records; {successful} successful pages; partial={incomplete}")
+
+def collect(fetch, province_pages, district_pages, budget, focus_regions=FOCUS_REGIONS):
+    districts = [district for scope in focus_regions.values() for district in scope]
+    stages = ([""], districts)
+    states = {
+        (district, mode): {"status": "pending", "seen_lots": set()}
+        for group in stages for district in group for mode in ("N", "Y")
+    }
+    records = {}
+    requests_used = successful = 0
+    stopped = False
+    rejection_counts.update(dict.fromkeys(REJECTIONS, 0))
+
+    for group, pages in zip(stages, (province_pages, district_pages)):
+        # Preserve the province feed. Within a stage, give each scope page 1
+        # before requesting later pages from a district with many results.
+        for page in range(1, pages + 1):
+            for district in group:
+                for mode in ("N", "Y"):
+                    state = states[district, mode]
+                    if stopped or requests_used >= budget or state["status"] != "pending":
+                        continue
+                    requests_used += 1
+                    try:
+                        result, message, payload, fmt = fetch(mode, page, district)
+                    except RuntimeError:
+                        if successful == 0:
+                            raise
+                        state["status"] = "error"
+                        stopped = True
+                        continue
+                    print(f"area={district or '경기도'} private_contract={mode} page={page} code={result}")
+                    if result == "03":
+                        successful += 1
+                        state["status"] = "complete"
+                        continue
+                    if result not in ("00", "0"):
+                        if not district:
+                            raise RuntimeError(f"Onbid rejected the province query ({result} {message})")
+                        state["status"] = "error"
+                        continue
+                    items = extract(payload, fmt)
+                    if not items:
+                        if not district:
+                            raise RuntimeError("Onbid reported success with an unrecognized item format")
+                        state["status"] = "error"
+                        continue
+                    successful += 1
+                    for item in items:
+                        row = normalize(item)
+                        if row and (not district or matches_district(row, district)):
+                            records[row["lot_id"], row["condition_id"]] = row
+                            state["seen_lots"].add(row["lot_id"])
+                    if len(items) < PAGE_SIZE:
+                        state["status"] = "complete"
+
+    province_lots = states["", "N"]["seen_lots"] | states["", "Y"]["seen_lots"]
+    summary = {}
+    scoped_complete = True
+    for city, areas in focus_regions.items():
+        statuses = {
+            district: {mode: states[district, mode]["status"] for mode in ("N", "Y")}
+            for district in areas
+        }
+        directly_seen = set().union(*(states[d, m]["seen_lots"] for d in areas for m in ("N", "Y")))
+        city_lots = {row["lot_id"] for row in records.values() if matches_district(row, city)}
+        complete = city_lots <= directly_seen and all(
+            status == "complete" for modes in statuses.values() for status in modes.values()
+        )
+        scoped_complete &= complete
+        summary[city] = {"complete": complete, "lots": len(city_lots),
+                         "added_lots": len(city_lots - province_lots), "scopes": statuses}
+
+    partial = not scoped_complete or any(states["", m]["status"] != "complete" for m in ("N", "Y"))
+    return list(records.values()), {"requests": requests_used, "successful_pages": successful,
+                                    "partial": partial, "focus_regions": summary,
+                                    "rejected": dict(rejection_counts)}
+
+
+def main():
+    key = os.getenv("DATA_GO_KR_API_KEY", "").strip()
+    if not key:
+        sys.exit("Missing DATA_GO_KR_API_KEY")
+    endpoint = os.getenv("ONBID_LIST_ENDPOINT", "").strip() or BASE
+    parsed = urllib.parse.urlparse(endpoint)
+    if parsed.scheme != "https" or parsed.hostname != "apis.data.go.kr":
+        sys.exit("Only official apis.data.go.kr HTTPS endpoints are allowed")
+    codes = ",".join(code.strip() for code in os.getenv("ONBID_PROPERTY_CODES", "0007,0010,0005,0002,0003,0006,0008,0011,0013").split(",")
+                     if re.fullmatch(r"\d{4}", code.strip()))
+    province_pages = min(max(int(os.getenv("ONBID_MAX_PAGES", "4")), 1), 20)
+    district_pages = min(max(int(os.getenv("ONBID_DISTRICT_PAGES", "2")), 1), 10)
+    budget = min(max(int(os.getenv("ONBID_REQUEST_BUDGET", "48")), 2), 100)
+
+    def fetch(mode, page, district):
+        time.sleep(0.25)
+        return request(endpoint, key, codes, mode, page, district)
+
+    rows, collection = collect(fetch, province_pages, district_pages, budget)
+    if not rows and collection["partial"]:
+        sys.exit("Incomplete collection with no confirmed items; preserving last snapshot")
+    collection["matched_by_type"] = {kind: sum(row["property_type"] == kind for row in rows) for kind in ("토지", "주택")}
+    snapshot = {"collection": collection, "updated": datetime.now(timezone.utc).isoformat(),
+                "status": "partial_verified" if collection["partial"] else "verified_filtered",
+                "source": "KAMCO Onbid real-estate list API", "items": rows}
+    DEST.parent.mkdir(parents=True, exist_ok=True)
+    DEST.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Published {len(rows)} rounds. Focus regions:", json.dumps(collection["focus_regions"], ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
